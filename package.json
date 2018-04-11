@@ -1,10 +1,10 @@
 {
-  "name": "cozy-konnector-template",
+  "name": "cozy-konnector-impots",
   "version": "1.0.0",
   "description": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/konnectors/cozy-konnector-template.git"
+    "url": "git+https://github.com/konnectors/impots.git"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +25,7 @@
     "build": "webpack",
     "precommit": "yarn lint",
     "lint": "eslint --fix .",
-    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/cozy-konnector-template.git}"
+    "deploy": "git-directory-deploy --directory build/ --branch ${DEPLOY_BRANCH:-build} --repo=${DEPLOY_REPOSITORY:-https://$GITHUB_TOKEN@github.com/konnectors/impots.git}"
   },
   "dependencies": {
     "cozy-konnector-libs": "4.1.2"
