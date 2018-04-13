@@ -1,0 +1,63 @@
+{
+  "version": "1.0.0",
+  "name": "Impots.gouv.fr",
+  "type": "konnector",
+  "language": "node",
+  "icon": "icon.svg",
+  "slug": "impots",
+  "source": "git://github.com/konnectors/cozy-konnector-impots.git",
+  "editor": "Cozy",
+  "vendorLink": "https://cfspart.impots.gouv.fr/LoginMDP",
+  "categories": ["public_service"],
+  "fields": {
+    "advancedFields": {
+      "folderPath": {
+        "advanced": true,
+        "isRequired": false
+      }
+    }
+  },
+  "dataType": [
+    "documents"
+  ],
+  "permissions": {
+    "files": {
+      "type": "io.cozy.files"
+    },
+    "accounts": {
+      "type": "io.cozy.accounts",
+      "verbs": ["GET"]
+    }
+  },
+  "developer": {
+    "name": "Cozy",
+    "url": "https://cozy.io"
+  },
+  "langs": ["fr", "en"],
+  "locales": {
+    "fr": {
+      "short_description": "Récupère vos déclarations de revenu et autres taxes",
+      "long_description": "Récupère vos déclarations de revenu et autres taxes",
+      "permissions": {
+        "files": {
+          "description": "Utilisé pour sauvegarder les documents fichiers"
+        },
+        "accounts": {
+          "description": "Utilisé pour obtenir les données du compte"
+        }
+      }
+    },
+    "en": {
+      "short_description": "Fetch your taxes declarations",
+      "long_description": "This connector fetches your taxes declarations",
+      "permissions": {
+        "files": {
+          "description": "Required to save the file documents"
+        },
+        "accounts": {
+          "description": "Required to get the account's data"
+        }
+      }
+    }
+  }
+}
