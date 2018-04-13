@@ -1,49 +1,137 @@
 const {
   BaseKonnector,
   requestFactory,
+  log,
+  scrape,
   saveFiles,
-  addData
+  errors
 } = require('cozy-konnector-libs')
-const request = requestFactory({ cheerio: true })
+const request = requestFactory({
+  // debug: true,
+  cheerio: true,
+  jar: true,
+  json: false
+})
+const querystring = require('querystring')
 
-const baseUrl = 'http://books.toscrape.com'
+const baseUrl = 'https://cfspart.impots.gouv.fr'
 
 module.exports = new BaseKonnector(start)
 
-// The start function is run by the BaseKonnector instance only when it got all the account
-// information (fields). When you run this connector yourself in "standalone" mode or "dev" mode,
-// the account information come from ./konnector-dev-config.json file
-function start(fields) {
-  // The BaseKonnector instance expects a Promise as return of the function
-  return request(`${baseUrl}/index.html`).then($ => {
-    // cheerio (https://cheerio.js.org/) uses the same api as jQuery (http://jquery.com/)
-    // here I do an Array.from to convert the cheerio fake array to a real js array.
-    const entries = Array.from($('article')).map(article =>
-      parseArticle($, article)
-    )
-    return addData(entries, 'io.cozy.books').then(() =>
-      saveFiles(entries, fields)
-    )
-  })
+async function start (fields) {
+  await login(fields)
+  const documents = await fetch()
+  await saveFiles(documents, fields)
 }
 
-// The goal of this function is to parse a html page wrapped by a cheerio instance // and return an array of js objects which will be saved to the cozy by addData (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#module_addData)
-// and saveFiles (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#savefiles)
-function parseArticle($, article) {
-  const $article = $(article)
-  const title = $article.find('h3 a').attr('title')
-  return {
-    title,
-    price: normalizePrice($article.find('.price_color').text()),
-    url: `${baseUrl}/${$article.find('h3 a').attr('href')}`,
-    // when it finds a fileurl attribute, saveFiles will save this file to the cozy with a filename
-    // name
-    fileurl: `${baseUrl}/${$article.find('img').attr('src')}`,
-    filename: `${title}.jpg`
+async function login (fields) {
+  log('info', 'Logging in')
+  let $
+  try {
+    $ = await request({
+      method: 'POST',
+      uri: `${baseUrl}/LoginMDP?op=c&url=`,
+      form: {
+        url: '',
+        LMDP_Spi: fields.login,
+        LMDP_Password: fields.password,
+        LMDP_Spi_tmp: fields.login,
+        LMDP_Password_tmp: fields.password
+      }
+    })
+  } catch (err) {
+    log('error', 'Website failed while trying to login')
+    log('error', err.message)
+    throw new Error(errors.VENDOR_DOWN)
+  }
+
+  const erreurs = $('.erreur:not(.pasvisible)')
+  if (erreurs.length) {
+    log('error', erreurs.eq(0).text().trim())
+    throw new Error(errors.LOGIN_FAILED)
   }
 }
 
-// convert a price string to a float
-function normalizePrice(price) {
-  return parseFloat(price.trim().replace('£', ''))
+async function fetch () {
+  let {$, urlPrefix} = await fetchMyDocumentsPage()
+
+  const documents = parseMyDocuments($, urlPrefix)
+  const result = await fetchFilesUrls(documents)
+  return normalizeOldFileNames(result)
+}
+
+async function fetchMyDocumentsPage () {
+  // default Mes Documents page
+  log('info', 'Fetching the list of documents')
+  let $ = await request(`${baseUrl}/acces-usager/cfs`)
+  const documentsLink = $('img[name=doc]').closest('a').attr('href')
+  const urlPrefix = documentsLink.split('/')[1] // gets "cesu-XX" from the url
+  $ = await request(`${baseUrl}${documentsLink}`)
+
+  // full Mes Documents page with all the documents
+  const $form = $('form[name=documentsForm]')
+  const formUrl = $form.attr('action')
+  const token = $form.find('input[name=CSRFTOKEN]').val()
+
+  $ = await request({
+    method: 'POST',
+    uri: `${baseUrl}${formUrl}`,
+    form: {
+      annee: 'all',
+      CSRFTOKEN: token,
+      method: 'rechercheDocuments',
+      typeDocument: 'toutDocument',
+      typeImpot: 'toutImpot'
+    }
+  })
+
+  return {$, urlPrefix}
+}
+
+function parseMyDocuments ($, urlPrefix) {
+  log('info', 'Now parsing the documents links')
+  const documents = scrape($, {
+    fileurl: {
+      attr: 'onclick',
+      parse: onclick => {
+        const viewerUrl = onclick.match(/\((.*)\)/)[1].split(',')[0].slice(1, -1)
+        return `${baseUrl}/${urlPrefix}/${viewerUrl}`
+      }
+    },
+    name: {
+      fn: link => {
+        return $(link).closest('tr').text()
+      }
+    }
+  }, '.cssLienTable')
+
+  log('info', `Found ${documents.length} documents to download`)
+
+  return documents
+}
+
+async function fetchFilesUrls (documents) {
+  const result = []
+  for (let doc of documents) {
+    log('debug', `Fetching doc url for ${doc.name}`)
+    const $ = await request(doc.fileurl)
+    result.push({
+      fileurl: `${baseUrl}${$('iframe').attr('src')}`,
+      name: doc.name
+    })
+  }
+  return result
+}
+
+function normalizeOldFileNames (documents) {
+  return documents.map(doc => {
+    if (doc.fileurl.match(/ConsultAR/)) {
+      // we have an "accusé de reception" without a file name
+      log('info', 'Old accuse de reception without filename')
+      const {typeForm, annee, numeroAdonis} = querystring.parse(doc.fileurl)
+      doc.filename = `IR-${typeForm}--${annee}-${numeroAdonis}.pdf`
+      log('info', 'Changed filename to ' + doc.filename)
+    }
+    return doc
+  })
 }

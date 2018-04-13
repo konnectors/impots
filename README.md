@@ -1,4 +1,4 @@
-[Cozy][cozy] <YOUR SUPER NEW KONNECTOR NAME>
+[Cozy][cozy] Impots.gouv.fr connector
 =======================================
 
 What's Cozy?
@@ -11,7 +11,7 @@ What's Cozy?
 What's this new konnector?
 --------------------------
 
-<YOUR DESCRIPTION HERE>
+This connector fetches your tax declarations
 
 ### Open a Pull-Request
 
@@ -23,7 +23,7 @@ This connector uses [cozy-konnector-libs](https://github.com/cozy/cozy-konnector
 
 ### Maintainer
 
-The lead maintainers for this konnector is <YOUR NAME>
+The lead maintainers for this konnector is @doubleface
 
 
 ### Get in touch
@@ -39,17 +39,12 @@ You can reach the Cozy Community by:
 License
 -------
 
-<YOUR KONNECTOR NAME> is developed by <your name> and distributed under the [AGPL v3 license][agpl-3.0].
+impots connector is developed by Cozy and distributed under the [AGPL v3 license][agpl-3.0].
 
 [cozy]: https://cozy.io "Cozy Cloud"
 [agpl-3.0]: https://www.gnu.org/licenses/agpl-3.0.html
 [freenode]: http://webchat.freenode.net/?randomnick=1&channels=%23cozycloud&uio=d4
 [forum]: https://forum.cozy.io/
 [github]: https://github.com/cozy/
-[nodejs]: https://nodejs.org/
-[standard]: https://standardjs.com
 [twitter]: https://twitter.com/mycozycloud
-[webpack]: https://webpack.js.org
-[yarn]: https://yarnpkg.com
-[travis]: https://travis-ci.org
 [contribute]: CONTRIBUTING.md

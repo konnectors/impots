@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "name": "konnector name",
+  "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
   "icon": "icon.svg",
-  "slug": "konnectorslug",
-  "source": "git://github.com/konnectors/cozy-konnector-thename.git",
-  "editor": "Your name",
-  "vendorLink": "Link to the target website",
-  "categories": ["other"],
+  "slug": "impots",
+  "source": "git://github.com/konnectors/cozy-konnector-impots.git",
+  "editor": "Cozy",
+  "vendorLink": "https://cfspart.impots.gouv.fr/LoginMDP",
+  "categories": ["public_service"],
   "fields": {
     "advancedFields": {
       "folderPath": {
@@ -18,12 +18,9 @@
     }
   },
   "dataType": [
-    "bill"
+    "documents"
   ],
   "permissions": {
-    "books": {
-      "type": "io.cozy.books"
-    },
     "files": {
       "type": "io.cozy.files"
     },
@@ -39,14 +36,11 @@
   "langs": ["fr", "en"],
   "locales": {
     "fr": {
-      "short_description": "Template de connecteur",
-      "long_description": "Ce template récupère une liste de livres sur un site de scraping",
+      "short_description": "Récupère vos déclarations de revenu et autres taxes",
+      "long_description": "Récupère vos déclarations de revenu et autres taxes",
       "permissions": {
-        "books": {
-          "description": "Utilisé pour sauvegarder les références des livres"
-        },
         "files": {
-          "description": "Utilisé pour sauvegarder les factures"
+          "description": "Utilisé pour sauvegarder les documents fichiers"
         },
         "accounts": {
           "description": "Utilisé pour obtenir les données du compte"
@@ -54,14 +48,11 @@
       }
     },
     "en": {
-      "short_description": "Connector template",
-      "long_description": "This template fetches a list of books from a scraping website",
+      "short_description": "Fetch your taxes declarations",
+      "long_description": "This connector fetches your taxes declarations",
       "permissions": {
-        "books": {
-          "description": "Required to save books references"
-        },
         "files": {
-          "description": "Required to save the bills"
+          "description": "Required to save the file documents"
         },
         "accounts": {
           "description": "Required to get the account's data"
