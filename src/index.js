@@ -53,14 +53,22 @@ async function login (fields) {
 }
 
 async function fetch () {
+  let {$, urlPrefix} = await fetchMyDocumentsPage()
+
+  const documents = parseMyDocuments($, urlPrefix)
+  const result = await fetchFilesUrls(documents)
+  return normalizeOldFileNames(result)
+}
+
+async function fetchMyDocumentsPage () {
+  // default Mes Documents page
   log('info', 'Fetching the list of documents')
   let $ = await request(`${baseUrl}/acces-usager/cfs`)
-
-  // get the "Mes documents" link
   const documentsLink = $('img[name=doc]').closest('a').attr('href')
   const urlPrefix = documentsLink.split('/')[1] // gets "cesu-XX" from the url
   $ = await request(`${baseUrl}${documentsLink}`)
 
+  // full Mes Documents page with all the documents
   const $form = $('form[name=documentsForm]')
   const formUrl = $form.attr('action')
   const token = $form.find('input[name=CSRFTOKEN]').val()
@@ -77,6 +85,11 @@ async function fetch () {
     }
   })
 
+  return {$, urlPrefix}
+}
+
+function parseMyDocuments ($, urlPrefix) {
+  log('info', 'Now parsing the documents links')
   const documents = scrape($, {
     fileurl: {
       attr: 'onclick',
@@ -94,6 +107,10 @@ async function fetch () {
 
   log('info', `Found ${documents.length} documents to download`)
 
+  return documents
+}
+
+async function fetchFilesUrls (documents) {
   const result = []
   for (let doc of documents) {
     log('debug', `Fetching doc url for ${doc.name}`)
@@ -103,8 +120,11 @@ async function fetch () {
       name: doc.name
     })
   }
+  return result
+}
 
-  return result.map(doc => {
+function normalizeOldFileNames (documents) {
+  return documents.map(doc => {
     if (doc.fileurl.match(/ConsultAR/)) {
       // we have an "accusé de reception" without a file name
       log('info', 'Old accuse de reception without filename')
