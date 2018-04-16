@@ -22,13 +22,13 @@ const baseUrl = 'https://cfspart.impots.gouv.fr'
 
 module.exports = new BaseKonnector(start)
 
-async function start (fields) {
+async function start(fields) {
   await login(fields)
   const documents = await fetch()
   await saveFiles(documents, fields)
 }
 
-async function login (fields) {
+async function login(fields) {
   log('info', 'Logging in')
   let $
   try {
@@ -51,24 +51,32 @@ async function login (fields) {
 
   const erreurs = $('.erreur:not(.pasvisible)')
   if (erreurs.length) {
-    log('error', erreurs.eq(0).text().trim())
+    log(
+      'error',
+      erreurs
+        .eq(0)
+        .text()
+        .trim()
+    )
     throw new Error(errors.LOGIN_FAILED)
   }
 }
 
-async function fetch () {
-  let {$, urlPrefix} = await fetchMyDocumentsPage()
+async function fetch() {
+  let { $, urlPrefix } = await fetchMyDocumentsPage()
 
   const documents = parseMyDocuments($, urlPrefix)
   const result = await fetchFilesUrls(documents)
   return normalizeOldFileNames(result)
 }
 
-async function fetchMyDocumentsPage () {
+async function fetchMyDocumentsPage() {
   // default Mes Documents page
   log('info', 'Fetching the list of documents')
   let $ = await request(`${baseUrl}/acces-usager/cfs`)
-  const documentsLink = $('img[name=doc]').closest('a').attr('href')
+  const documentsLink = $('img[name=doc]')
+    .closest('a')
+    .attr('href')
   const urlPrefix = documentsLink.split('/')[1] // gets "cesu-XX" from the url
   $ = await request(`${baseUrl}${documentsLink}`)
 
@@ -89,32 +97,41 @@ async function fetchMyDocumentsPage () {
     }
   })
 
-  return {$, urlPrefix}
+  return { $, urlPrefix }
 }
 
-function parseMyDocuments ($, urlPrefix) {
+function parseMyDocuments($, urlPrefix) {
   log('info', 'Now parsing the documents links')
-  const documents = scrape($, {
-    fileurl: {
-      attr: 'onclick',
-      parse: onclick => {
-        const viewerUrl = onclick.match(/\((.*)\)/)[1].split(',')[0].slice(1, -1)
-        return `${baseUrl}/${urlPrefix}/${viewerUrl}`
+  const documents = scrape(
+    $,
+    {
+      fileurl: {
+        attr: 'onclick',
+        parse: onclick => {
+          const viewerUrl = onclick
+            .match(/\((.*)\)/)[1]
+            .split(',')[0]
+            .slice(1, -1)
+          return `${baseUrl}/${urlPrefix}/${viewerUrl}`
+        }
+      },
+      name: {
+        fn: link => {
+          return $(link)
+            .closest('tr')
+            .text()
+        }
       }
     },
-    name: {
-      fn: link => {
-        return $(link).closest('tr').text()
-      }
-    }
-  }, '.cssLienTable')
+    '.cssLienTable'
+  )
 
   log('info', `Found ${documents.length} documents to download`)
 
   return documents
 }
 
-async function fetchFilesUrls (documents) {
+async function fetchFilesUrls(documents) {
   const result = []
   for (let doc of documents) {
     log('debug', `Fetching doc url for ${doc.name}`)
@@ -127,12 +144,12 @@ async function fetchFilesUrls (documents) {
   return result
 }
 
-function normalizeOldFileNames (documents) {
+function normalizeOldFileNames(documents) {
   return documents.map(doc => {
     if (doc.fileurl.match(/ConsultAR/)) {
       // we have an "accusé de reception" without a file name
       log('info', 'Old accuse de reception without filename')
-      const {typeForm, annee, numeroAdonis} = querystring.parse(doc.fileurl)
+      const { typeForm, annee, numeroAdonis } = querystring.parse(doc.fileurl)
       doc.filename = `IR-${typeForm}--${annee}-${numeroAdonis}.pdf`
       log('info', 'Changed filename to ' + doc.filename)
     }
