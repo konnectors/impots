@@ -59,6 +59,8 @@ async function login(fields) {
         .trim()
     )
     throw new Error(errors.LOGIN_FAILED)
+  } else {
+    log('info', 'Successfully logged in')
   }
 }
 

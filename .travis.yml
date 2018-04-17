@@ -6,6 +6,8 @@ env:
     # cozy-bot GITHUB_TOKEN
     # to generate yours : travis encrypt GITHUB_TOKEN=<your_GITHUB_TOKEN>
     - secure: "YyTrh3BRKGpOWVEV6GB51pa709/FV36Nzs9BEzNNedWx8uGhKoE735O8o2C0469ThM9xvUsMy9/YYtxRlC9/MoxdEyJ4g2nebFOTuvB0RBpqIEbkwiIe1EFK5oW6kyPiC8TZPSFyXx4Klj/ttG4SraK+pdqXXy55LEropOUJwXSExI7w29K/RrDF+F1a0umgnxXmdmAgqrUmSWNfOmCwusMej4C1jomZqVZQKNOfdejJZbTFF1FGKkB9w3ruad3y20NXawf0zb6veGn4v887ds3VKe2dwdFNnXTaoSi5v8I7mPSMTNPnS/Mzw+su1h/ucyJDBvq9nElgh82NlyDo+hfM1S5KXmCA6BLbRQERrhqslZw9DCUkckja2iiIiC9mLkvhNvCob2f46kuZ8TfHSFJ3Mb9uBvtYGyzKliHlgrITGVKCOS8Rg/WYYBb8AbA1pK5iuEDynHie3dMJXt4F6AVIY3u87l5Bc85PZLfLh3dEaz2SxQ9p9mME/8RgMkUKwZdZBLMYYudTI/BGkX122zKY9X+W5olpqhgngN8Eq6C3W/7CiuHWtCB2CuKW36HVdJ1r4ETIjdVgMAnOxgBjZLV8TETobw3C+ufeIWMwqP9AFZkq5OroywpHr8BJlgcalzCbufmECaZ0Jp9ozPOVp1SPw19Hk8qCLLyUfnCqyac="
+    # Cozy REGISTRY_TOKEN
+    - secure: "L0j3/DPbtLijTjACo+jjjhYbQUNwc2CNMdQ4Tav/Y0J+17COZt2z6M+AspRpvEVfQOjz+lRVBrD516rIvn7nWPLhhxBW8elVQZzalwjOrTcTsho+V9guVbM/pNCEq1kAcZZTX0RZ6ZDJXve6NnnQrqN7DgYXi0F2DDcdY/JNi1HPkiHtaVhU2lbEcuE7OosrG7cSSYyEAi9DBuRScNlUo2I0g9NvKnOQ0JNwUvNQQ/pz/j8vCebqMPR5/yynnO5pKLbMjq/bvkxWPZgo34WGsm2S2GWlCVLBSchicFdWwEB4X6cajeCngpFd54kesZ3ZLzZkF2uef+DGOf0v8p0Av6zCXzL5RqtAlwLd2JSC56aTXsgArsRuMl8t4g6efbYSufW0zXQ6zVosufWODQku/cGYrFdc2KK7pTKR7TAObqYAVwGM7u/SRpNVsJeZ1XK0aqKnjkhWLxhzjAlcL3vsxN5tB7P+SEnDTmX4ufVkWzXb+mknYmS2qhi+orjWbbw+MgFzqWTXzVMg1StKGVF7ZqUkGqlmrIUISgLaQcqE7ifsst0GJsLNnO+u8tXQZrSP7vJymZa4kyk9eQHK0FRKg2NI2gXiFYhnkD8Owv0QOjtwv4Ql3LuuwJKSLZc74TxJS3Rm15sqNx4rR+4291F5OwU7vLSWGXi3frseJjc3M4E="
 cache:
   yarn: true
   directories:
@@ -17,12 +19,12 @@ deploy:
   - provider: script
     repo: konnectors/impots
     skip-cleanup: true
-    script: yarn deploy
+    script: DEPLOY_BRANCH=build && yarn deploy && yarn cozyPublish
     on:
       branch: master
   - provider: script
     repo: konnectors/impots
     skip-cleanup: true
-    script: DEPLOY_BRANCH=latest yarn deploy
+    script: DEPLOY_BRANCH=latest && yarn deploy && yarn cozyPublish
     on:
       branch: prod
