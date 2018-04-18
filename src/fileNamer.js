@@ -51,6 +51,10 @@ function normalizeFileNames(documents) {
 
 function mapValue(map, value) {
   if (map[value] === undefined) {
+    log(
+      'info',
+      `${value} has no associated value in ${JSON.stringify(Object.keys(map))}`
+    )
     return `-${value}`
   } else if (map[value] === false) {
     return ''
