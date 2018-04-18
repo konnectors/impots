@@ -7,7 +7,7 @@
     "url": "git+https://github.com/konnectors/impots.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Cozy Cloud",
   "license": "AGPL-3.0",
   "main": "./src/index.js",
   "eslintConfig": {
@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.5.1",
+    "cozy-app-publish": "0.3.5",
     "cozy-jobs-cli": "1.0.17",
     "eslint": "4.19.1",
     "eslint-config-cozy-app": "0.5.1",
