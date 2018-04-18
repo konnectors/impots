@@ -16,7 +16,7 @@ const request = requestFactory({
   jar: true,
   json: false
 })
-const querystring = require('querystring')
+const normalizeFileNames = require('./fileNamer')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
 
@@ -69,7 +69,7 @@ async function fetch() {
 
   const documents = parseMyDocuments($, urlPrefix)
   const result = await fetchFilesUrls(documents)
-  return normalizeOldFileNames(result)
+  return normalizeFileNames(result)
 }
 
 async function fetchMyDocumentsPage() {
@@ -144,17 +144,4 @@ async function fetchFilesUrls(documents) {
     })
   }
   return result
-}
-
-function normalizeOldFileNames(documents) {
-  return documents.map(doc => {
-    if (doc.fileurl.match(/ConsultAR/)) {
-      // we have an "accusé de reception" without a file name
-      log('info', 'Old accuse de reception without filename')
-      const { typeForm, annee, numeroAdonis } = querystring.parse(doc.fileurl)
-      doc.filename = `IR-${typeForm}--${annee}-${numeroAdonis}.pdf`
-      log('info', 'Changed filename to ' + doc.filename)
-    }
-    return doc
-  })
 }
