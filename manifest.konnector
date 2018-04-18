@@ -4,7 +4,7 @@
   "type": "konnector",
   "language": "node",
   "icon": "icon.svg",
-  "slug": "impots",
+  "slug": "impots-collect",
   "source": "git://github.com/konnectors/impots.git",
   "editor": "Cozy",
   "vendorLink": "https://cfspart.impots.gouv.fr/LoginMDP",
