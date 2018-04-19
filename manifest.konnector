@@ -4,10 +4,10 @@
   "type": "konnector",
   "language": "node",
   "icon": "icon.svg",
-  "slug": "impots-collect",
+  "slug": "impots",
   "source": "git://github.com/konnectors/impots.git",
   "editor": "Cozy",
-  "vendorLink": "https://cfspart.impots.gouv.fr/LoginMDP",
+  "vendor_link": "https://cfspart.impots.gouv.fr/LoginMDP",
   "categories": ["public_service"],
   "fields": {
     "login": {
@@ -25,7 +25,7 @@
       }
     }
   },
-  "dataType": [
+  "data_types": [
     "documents"
   ],
   "permissions": {
