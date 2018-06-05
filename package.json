@@ -46,6 +46,6 @@
     "jest": "23.1.0",
     "konitor": "0.8.3",
     "webpack": "4.10.2",
-    "webpack-cli": "2.1.5"
+    "webpack-cli": "3.0.2"
   }
 }
