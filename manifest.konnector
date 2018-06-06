@@ -3,7 +3,7 @@
   "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
-  "icon": "icon.svg",
+  "icon": "impots.png",
   "slug": "impots",
   "source": "git://github.com/konnectors/impots.git",
   "editor": "Cozy",
@@ -38,7 +38,7 @@
     }
   },
   "developer": {
-    "name": "Cozy",
+    "name": "Cozy Cloud",
     "url": "https://cozy.io"
   },
   "langs": ["fr", "en"],
@@ -67,5 +67,6 @@
         }
       }
     }
-  }
+  },
+  "manifest_version": "2"
 }
