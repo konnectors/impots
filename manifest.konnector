@@ -1,9 +1,9 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
-  "icon": "impots.png",
+  "icon": "impots.gouv.svg",
   "slug": "impots",
   "source": "git://github.com/konnectors/impots.git",
   "editor": "Cozy",
