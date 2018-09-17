@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "cozy-konnector-libs": "4.10.2",
-    "svgo": "1.0.5"
+    "svgo": "1.1.1"
   },
   "devDependencies": {
     "copy-webpack-plugin": "4.5.2",
