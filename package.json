@@ -35,7 +35,7 @@
     "travisDeployKey": "./bin/generate_travis_deploy_key"
   },
   "dependencies": {
-    "cozy-konnector-libs": "4.10.2",
+    "cozy-konnector-libs": "4.10.3",
     "svgo": "1.1.1"
   },
   "devDependencies": {
