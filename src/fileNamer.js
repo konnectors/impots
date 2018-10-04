@@ -33,18 +33,20 @@ const formTypeMap = {
 
 function normalizeFileNames(documents) {
   return documents.map(doc => {
-    log('info', doc.fileurl)
-    const {
-      typeForm,
-      annee,
-      numeroAdonis,
-      typeDoc,
-      typeImpot
-    } = querystring.parse(doc.fileurl)
-    doc.filename = `${annee}${mapValue(categoryMap, typeImpot)}${mapValue(
-      documentTypeMap,
-      typeDoc
-    )}${mapValue(formTypeMap, typeForm)}-${numeroAdonis}.pdf`
+    if (doc.fileurl) {
+      log('info', doc.fileurl)
+      const {
+        typeForm,
+        annee,
+        numeroAdonis,
+        typeDoc,
+        typeImpot
+      } = querystring.parse(doc.fileurl)
+      doc.filename = `${annee}${mapValue(categoryMap, typeImpot)}${mapValue(
+        documentTypeMap,
+        typeDoc
+      )}${mapValue(formTypeMap, typeForm)}-${numeroAdonis}.pdf`
+    }
     return doc
   })
 }
