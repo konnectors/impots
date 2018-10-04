@@ -30,8 +30,19 @@ async function start(fields) {
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields)
   await saveBills(bills, fields, {
-    identifiers: ['impot', 'impots', 'dgfip', 'd.g.f.i.p', 'ddfip', 'd.d.f.i.p', 'drfip',
-                  'd.r.f.i.p', 'tresor public', 'finances pub', 'finances publiques']
+    identifiers: [
+      'impot',
+      'impots',
+      'dgfip',
+      'd.g.f.i.p',
+      'ddfip',
+      'd.d.f.i.p',
+      'drfip',
+      'd.r.f.i.p',
+      'tresor public',
+      'finances pub',
+      'finances publiques'
+    ]
   })
 }
 
