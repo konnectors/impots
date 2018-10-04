@@ -30,7 +30,8 @@ async function start(fields) {
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields)
   await saveBills(bills, fields, {
-    identifiers: ['impots']
+    identifiers: ['impot', 'impots', 'dgfip', 'd.g.f.i.p', 'ddfip', 'd.d.f.i.p', 'drfip',
+                  'd.r.f.i.p', 'tresor public', 'finances pub', 'finances publiques']
   })
 }
 
@@ -276,7 +277,7 @@ function scrapeLine($line, masterBillLink, urlPrefix, model) {
     .text()
     .match(/\d{2}\/\d{2}\/\d{4}/)[0]
   return {
-    vendor: 'impots',
+    vendor: 'impot',
     amount: parseFloat(amount.match(/\d+/g).join('')),
     currency: 'EUR',
     date: moment(
@@ -292,7 +293,7 @@ function scrapeLine($line, masterBillLink, urlPrefix, model) {
 function scrapeRefundLine($line, masterBillLink, urlPrefix, year) {
   const amountLine = $line.find('td').text()
   return {
-    vendor: 'impots',
+    vendor: 'impot',
     amount: parseFloat(amountLine.match(/\d+/g).join('')),
     isRefund: true,
     currency: 'EUR',
