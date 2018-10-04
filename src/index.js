@@ -174,7 +174,7 @@ async function parseBills($, urlPrefix) {
      no specific characteristics to stick
   */
   log('info', 'Parsing bills from detailAccount page')
-  let masterBillLink
+  let masterBillLink, currentYear
   let bills = []
   const lines = Array.from($('td[class=cssFondTable]').find('table tr'))
   lines.forEach((line, index) => {
@@ -185,7 +185,7 @@ async function parseBills($, urlPrefix) {
     ) {
       log('debug', 'Throw line 0 as title')
     } else if (
-      // If line is a master line(2 column), store link
+      // If line is a master line(2 column), store link and year
       $line.find('td').length === 2 &&
       $line
         .find('td')
@@ -194,6 +194,7 @@ async function parseBills($, urlPrefix) {
     ) {
       log('debug', `Master line detected`)
       masterBillLink = extractLinkInMasterLine($line)
+      currentYear = extractYearInMasterLine($line)
     } else if (
       // If line is a same year master line(1 column), store link
       $line.find('td').length === 1 &&
@@ -228,8 +229,14 @@ async function parseBills($, urlPrefix) {
       $line.find('td').length === 1 &&
       $line.find('td').attr('colspan') == 4
     ) {
-      log('debug', 'Refund line')
-      // To be implemented
+      log('debug', 'Refund line detected')
+      const bill = scrapeRefundLine(
+        $line,
+        masterBillLink,
+        urlPrefix,
+        currentYear
+      )
+      bills.push(bill)
     }
   })
   return bills
@@ -241,6 +248,13 @@ function extractLinkInMasterLine($line) {
     link = link.split(`'`)[1]
   }
   return link
+}
+
+function extractYearInMasterLine($line) {
+  return $line
+    .find('td')
+    .eq(0)
+    .text()
 }
 
 function scrapeLine($line, masterBillLink, urlPrefix, model) {
@@ -269,6 +283,20 @@ function scrapeLine($line, masterBillLink, urlPrefix, model) {
       date.match(/\d{1,2}\/\d{1,2}\/\d{4}/)[0],
       'DD-MM-YYYY'
     ).toDate(),
+    fileurl: masterBillLink
+      ? `${baseUrl}/${urlPrefix}/${masterBillLink}`
+      : undefined
+  }
+}
+
+function scrapeRefundLine($line, masterBillLink, urlPrefix, year) {
+  const amountLine = $line.find('td').text()
+  return {
+    vendor: 'impots',
+    amount: parseFloat(amountLine.match(/\d+/g).join('')),
+    isRefund: true,
+    currency: 'EUR',
+    date: moment(`01/07/${year}`, 'DD-MM-YYYY').toDate(),
     fileurl: masterBillLink
       ? `${baseUrl}/${urlPrefix}/${masterBillLink}`
       : undefined
