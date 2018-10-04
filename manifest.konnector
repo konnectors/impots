@@ -44,8 +44,8 @@
   "langs": ["fr", "en"],
   "locales": {
     "fr": {
-      "short_description": "Récupère vos déclarations de revenu et autres taxes",
-      "long_description": "Récupère vos déclarations de revenu et autres taxes",
+      "short_description": "Récupère toutes vos déclarations de revenus et autres taxes depuis votre espace particuliers",
+      "long_description": "Récupère toutes vos déclarations depuis votre espace particuliers du site impots.gouv.fr les documents de vos impots et autres taxes : Impôts sur le revenu, taxe d'habitation, taxe foncière, ...\nCe connecteur ne fonctionne pas pour l'espace professionnel",
       "permissions": {
         "files": {
           "description": "Utilisé pour sauvegarder les documents fichiers"
@@ -56,8 +56,8 @@
       }
     },
     "en": {
-      "short_description": "Fetch your taxes declarations",
-      "long_description": "This connector fetches your taxes declarations",
+      "short_description": "Fetch all your taxes declarations on impots.gouv.fr from your personnal account",
+      "long_description": "This connector fetches all your taxes declarations on the french official website impots.gouv.fr from your personnal account\nThis connector do not work with profesionnal account",
       "permissions": {
         "files": {
           "description": "Required to save the file documents"
