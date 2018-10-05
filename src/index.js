@@ -27,8 +27,9 @@ module.exports = new BaseKonnector(start)
 
 async function start(fields) {
   await login(fields)
-  const [documents, bills] = await fetch()
+  let [documents, bills] = await fetch()
   await saveFiles(documents, fields)
+  bills = await fetchBills()
   await saveBills(bills, fields, {
     identifiers: [
       'impot',
@@ -101,6 +102,24 @@ async function fetch() {
     normalizeFileNames(documentsFetched),
     normalizeFileNames(billsFetched)
   ]
+}
+
+async function fetchBills() {
+  /* Mandatory: Fetch details before documents, because pdf access is selective.
+     Hopefully, 'details' pdfs are include in 'all documents' pdfs.
+  */
+  let { urlPrefix, token } = await fetchMenu()
+
+  let $ = await getMyDetailAccountPage(urlPrefix, token)
+  const bills = await parseBills($, urlPrefix)
+
+  //$ = await getMyDocumentsPage(urlPrefix, token)
+  //const documents = parseMyDocuments($, urlPrefix)
+
+  //const documentsFetched = await prefetchUrls(documents)
+  const billsFetched = await prefetchUrls(bills)
+
+  return normalizeFileNames(billsFetched)
 }
 
 async function fetchMenu() {
