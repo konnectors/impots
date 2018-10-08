@@ -26,9 +26,16 @@
     }
   },
   "data_types": [
-    "documents"
+    "documents",
+    "bill"
   ],
   "permissions": {
+    "bank operations": {
+      "type": "io.cozy.bank.operations"
+    },
+    "bills": {
+      "type": "io.cozy.bills"
+    },
     "files": {
       "type": "io.cozy.files"
     },
