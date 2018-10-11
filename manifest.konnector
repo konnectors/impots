@@ -52,7 +52,7 @@
   "locales": {
     "fr": {
       "short_description": "Récupère tous les documents relatifs à vos impôts et taxes",
-      "long_description": "Sur votre espace particulier, ce connecteur récupère tous les documents relatifs à vos impôts et taxes :\n- Avis d'impôt sur le revenu\n- Avis primitif\n- Accusé de réception de votre déclaration de revenu\n- Avis de Situation Déclarative à l'Impôt sur le Revenu (ASDIR)\n- Avis de taxe d'habitation\n- Formulaires 2041/2042/2044\n- Échéancier\n\n&nbsp;\n\n__A noter__ : Ce connecteur ne fonctionne pas pour l'espace professionnel.",
+      "long_description": "Sur votre espace particulier, ce connecteur récupère tous les documents relatifs à vos impôts et taxes :\n- Avis d'impôt sur le revenu\n- Avis primitif\n- Accusé de réception de votre déclaration de revenu\n- Avis de Situation Déclarative à l'Impôt sur le Revenu (ASDIR)\n- Avis de taxe d'habitation\n- Formulaires 2041/2042/2044\n- Échéancier\n\n&nbsp;\n\n*A noter* : Ce connecteur ne fonctionne pas pour l'espace professionnel.",
       "permissions": {
         "files": {
           "description": "Utilisé pour sauvegarder les documents fichiers"
@@ -64,7 +64,7 @@
     },
     "en": {
       "short_description": "Fetch all documents related to your taxes",
-      "long_description": "On your personal account, this connector fetches all documents related to your taxes :\n- Income tax notice (Avis d'impôt sur le revenu)\n- Original notice (Avis primitif)\n- Acknowledgement of receipt of your tax return (Accusé de réception de votre déclaration de revenus)\n- Declarative statement notice on income tax (ASDIR)\n- Housing tax notice (Avis de taxe d’habitation)\n- Forms 2041/2042/2044\n- Payment schedule\n\n&nbsp;\n\n__Note__ : This connector does not work with a professional account.",
+      "long_description": "On your personal account, this connector fetches all documents related to your taxes :\n- Income tax notice (Avis d'impôt sur le revenu)\n- Original notice (Avis primitif)\n- Acknowledgement of receipt of your tax return (Accusé de réception de votre déclaration de revenus)\n- Declarative statement notice on income tax (ASDIR)\n- Housing tax notice (Avis de taxe d’habitation)\n- Forms 2041/2042/2044\n- Payment schedule\n\n&nbsp;\n\n*Note* : This connector does not work with a professional account.",
       "permissions": {
         "files": {
           "description": "Required to save the file documents"
