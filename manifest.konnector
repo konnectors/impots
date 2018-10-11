@@ -64,8 +64,7 @@
     },
     "en": {
       "short_description": "Fetch all documents related to your taxes",
-      "long_description": "On your personal account, this connector fetches all documents related to your taxes :\n- Income tax notice (Avis d'impôt sur le revenu)\n- Original notice (Avis primitif)\n- Acknowledgement of receipt of your tax return (Accusé de réception de votre déclaration de revenus)\n- Declarative statement notice on income tax (ASDIR)\n- Housing tax notice (Avis de taxe d’habitation)\n- Forms 2041/2042/2044\n- Payment schedule\n\n&nbsp;\n\n__Note__ : This connector does not work with a professional account.
-
+      "long_description": "On your personal account, this connector fetches all documents related to your taxes :\n- Income tax notice (Avis d'impôt sur le revenu)\n- Original notice (Avis primitif)\n- Acknowledgement of receipt of your tax return (Accusé de réception de votre déclaration de revenus)\n- Declarative statement notice on income tax (ASDIR)\n- Housing tax notice (Avis de taxe d’habitation)\n- Forms 2041/2042/2044\n- Payment schedule\n\n&nbsp;\n\n__Note__ : This connector does not work with a professional account.",
       "permissions": {
         "files": {
           "description": "Required to save the file documents"
