@@ -60,7 +60,8 @@
         "accounts": {
           "description": "Utilisé pour obtenir les données du compte"
         }
-      }
+      },
+      "login": "Numéro fiscal"
     },
     "en": {
       "short_description": "Fetch all documents related to your taxes",
@@ -73,7 +74,8 @@
           "description": "Required to get the account's data"
         }
       }
-    }
+    },
+    "login": "Fiscal number"
   },
   "banksTransactionRegExp":"(impot|impots|dgfip|d\\.g\\.f\\.i\\.p|ddfip|d\\.d\\.f\\.i\\.p|drfip|d\\.r\\.f\\.i\\.p|tresor public|finances pub|finances publiques)",
   "manifest_version": "2"
