@@ -46,7 +46,9 @@ function parseBills($, urlPrefix, baseUrl) {
     ) {
       log('debug', 'Payment line with 3 column detected')
       let bill = scrapeLine($line, masterBillLink, urlPrefix, 3, baseUrl)
-      bills.push(bill)
+      if (bill != undefined) {
+        bills.push(bill)
+      }
     } else if (
       // If line is a payment(5 column), make a bill
       $line.find('td').length === 5 &&
@@ -57,7 +59,9 @@ function parseBills($, urlPrefix, baseUrl) {
     ) {
       log('debug', 'Payment line with 5 column detected')
       let bill = scrapeLine($line, masterBillLink, urlPrefix, 5, baseUrl)
-      bills.push(bill)
+      if (bill != undefined) {
+        bills.push(bill)
+      }
     } else if (
       // If line is a refund
       $line.find('td').length === 1 &&
@@ -105,22 +109,25 @@ function scrapeLine($line, masterBillLink, urlPrefix, model, baseUrl) {
     .find('td')
     .eq(amountCol)
     .text()
-  const date = $line
+  const dateMatch = $line
     .find('td')
     .eq(dateCol)
     .text()
-    .match(/\d{2}\/\d{2}\/\d{4}/)[0]
-  return {
-    vendor: 'impot',
-    amount: parseFloat(amount.match(/\d+/g).join('')),
-    currency: 'EUR',
-    date: moment(
-      date.match(/\d{1,2}\/\d{1,2}\/\d{4}/)[0],
-      'DD-MM-YYYY'
-    ).toDate(),
-    fileurl: masterBillLink
-      ? `${baseUrl}/${urlPrefix}/${masterBillLink}`
-      : undefined
+    .match(/\d{2}\/\d{2}\/\d{4}/) //[0]
+  if (dateMatch) {
+    return {
+      vendor: 'impot',
+      amount: parseFloat(amount.match(/\d+/g).join('')),
+      currency: 'EUR',
+      date: moment(dateMatch[0], 'DD-MM-YYYY').toDate(),
+      fileurl: masterBillLink
+        ? `${baseUrl}/${urlPrefix}/${masterBillLink}`
+        : undefined
+    }
+  } else {
+    //No date, we wait for the date of payment to appear next time
+    log('info', 'Line with no date detected, no bill made')
+    return undefined
   }
 }
 
