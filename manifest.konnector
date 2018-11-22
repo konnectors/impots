@@ -1,5 +1,5 @@
 {
-  "version": "1.1.2",
+  "version": "1.2.0",
   "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
@@ -67,6 +67,11 @@
         "accounts": {
           "description": "Utilisé pour obtenir les données du compte"
         }
+      },
+      "form": {
+        "label": {
+          "login": "Numéro fiscal"
+        }
       }
     },
     "en": {
@@ -78,6 +83,11 @@
         },
         "accounts": {
           "description": "Required to get the account's data"
+        }
+      },
+      "form": {
+        "label": {
+          "login": "Fiscal number"
         }
       }
     }
