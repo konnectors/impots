@@ -10,11 +10,12 @@ const categoryMap = {
   '1': 'ImpotsRevenus',
   '2': 'TaxeFoncière',
   '3': 'TaxeHabitation',
+  '4': 'PrélèvementsSociaux',
   '5': 'RedevanceAudiovisuelle'
 }
 
 const documentTypeMap = {
-  '1': 'Formulaire',
+  '1': 'FormulaireEnLigne',
   '2': 'Avis',
   '4': 'AccuséRéception',
   '5': 'Formulaire',
@@ -22,13 +23,17 @@ const documentTypeMap = {
 }
 
 const formTypeMap = {
+  '1': 'Primitif',
   '2': 'Correctif',
+  '3': 'Dégrèvement',
   '4': 'Suite',
   '71': 'Echeancier',
+  '811': 'PremierAcompte',
+  '812': 'SecondAcompte',
   AR: false,
   '1MEN': 'Primitif',
   '1ASDIR': 'SituationDéclarative',
-  '1TIP': false
+  '1TIP': 'PrimitifPrélevé'
 }
 
 function normalizeFileNames(documents) {
