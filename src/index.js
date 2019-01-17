@@ -62,9 +62,18 @@ async function login(fields) {
       }
     })
   } catch (err) {
-    log('error', 'Website failed while trying to login')
-    log('error', err.message)
-    throw new Error(errors.VENDOR_DOWN)
+    if (
+      err.statusCode === 503 &&
+      err.message.includes('Ma situation fiscale personnelle')
+    ) {
+      log('info', 'Got 503 during login, seems to be logged anyway')
+      log('info', 'Successfully logged in')
+      return
+    } else {
+      log('error', 'Website failed while trying to login')
+      log('error', err)
+      throw new Error(errors.VENDOR_DOWN)
+    }
   }
 
   const erreurs = $('.erreur:not(.pasvisible)')
