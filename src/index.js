@@ -49,45 +49,55 @@ async function start(fields) {
 async function login(fields) {
   log('info', 'Logging in')
   let $
+
+  // Precheck Fiscal Number, not mandatory, only for login_failed detection
   try {
     $ = await request({
       method: 'POST',
-      uri: `${baseUrl}/LoginMDP?op=c&url=`,
+      uri: `${baseUrl}/GetContexte?op=c&url=`,
       form: {
         url: '',
-        LMDP_Spi: fields.login,
-        LMDP_Password: fields.password,
-        LMDP_Spi_tmp: fields.login,
-        LMDP_Password_tmp: fields.password
+        spi: fields.login
       }
     })
   } catch (err) {
-    if (
-      err.statusCode === 503 &&
-      err.message.includes('Ma situation fiscale personnelle')
-    ) {
-      log('info', 'Got 503 during login, seems to be logged anyway')
-      log('info', 'Successfully logged in')
-      return
-    } else {
-      log('error', 'Website failed while trying to login')
-      log('error', err)
-      throw new Error(errors.VENDOR_DOWN)
-    }
+    log('error', 'Website failed while trying to login')
+    log('error', err)
+    throw new Error(errors.VENDOR_DOWN)
+  }
+  if ($.html().includes("postMessage('ctx,EXISTEPAS")) {
+    log('error', "Fiscal number don't existing")
+    throw new Error(errors.LOGIN_FAILED)
   }
 
-  const erreurs = $('.erreur:not(.pasvisible)')
-  if (erreurs.length) {
-    log(
-      'error',
-      erreurs
-        .eq(0)
-        .text()
-        .trim()
+  try {
+    $ = await request({
+      method: 'POST',
+      uri: `${baseUrl}/LoginAEL?op=c&url=`,
+      form: {
+        url: '',
+        spi: fields.login,
+        pwd: fields.password
+      }
+    })
+  } catch (err) {
+    log('error', 'Website failed while trying to login')
+    log('error', err)
+    throw new Error(errors.VENDOR_DOWN)
+  }
+
+  // Expect a 200 received here. Login success and login failed come here
+  if (
+    $.html().includes(
+      "postMessage('ok,https://cfspart.impots.gouv.fr/monprofil-webapp/connexion"
     )
+  ) {
+    log('info', 'Successfully logged in')
+  } else if ($.html().includes("postMessage('lmdp")) {
+    log('error', 'Password seems wrong')
     throw new Error(errors.LOGIN_FAILED)
   } else {
-    log('info', 'Successfully logged in')
+    throw new Error('UNKOWN_LOGIN_STATUS')
   }
 }
 
