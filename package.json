@@ -50,6 +50,6 @@
     "jest": "23.6.0",
     "konitor": "0.10.1",
     "webpack": "4.29.1",
-    "webpack-cli": "3.2.1"
+    "webpack-cli": "3.2.3"
   }
 }
