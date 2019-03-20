@@ -125,6 +125,10 @@ async function fetchMenu() {
     .closest('a')
     .attr('href')
   const urlPrefix = documentsLink.split('/')[1] // gets "cesu-XX" or "cfsu-XX" from the url
+  if (urlPrefix == undefined) {
+    log('error', 'No url prefix defined, unable to continue')
+    throw new Error(errors.VENDOR_DOWN)
+  }
   $ = await request(`${baseUrl}${documentsLink}`)
   const $form = $('form[name=documentsForm]')
   const token = $form.find('input[name=CSRFTOKEN]').val()
