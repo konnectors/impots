@@ -12,7 +12,7 @@ const {
   errors
 } = require('cozy-konnector-libs')
 const request = requestFactory({
-  //debug: true,
+  // debug: true,
   cheerio: true,
   jar: true,
   json: false
@@ -87,16 +87,13 @@ async function login(fields) {
   }
 
   // Expect a 200 received here. Login success and login failed come here
-  if (
-    $.html().includes(
-      "postMessage('ok,https://cfspart.impots.gouv.fr/monprofil-webapp/connexion"
-    )
-  ) {
+  if ($.html().includes("postMessage('ok,https://cfspart.impots.gouv.fr")) {
     log('info', 'Successfully logged in')
   } else if ($.html().includes("postMessage('lmdp")) {
     log('error', 'Password seems wrong')
     throw new Error(errors.LOGIN_FAILED)
   } else {
+    global.openInBrowser($)
     throw new Error('UNKOWN_LOGIN_STATUS')
   }
 }
