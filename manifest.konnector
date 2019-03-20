@@ -5,7 +5,7 @@
   "language": "node",
   "icon": "impots.gouv.svg",
   "slug": "impots",
-  "source": "git://github.com/konnectors/impots.git",
+  "source": "git@github.com:konnectors/impots.git",
   "editor": "Cozy",
   "vendor_link": "https://cfspart.impots.gouv.fr/LoginMDP",
   "categories": [
