@@ -17,6 +17,7 @@ const request = requestFactory({
   jar: true,
   json: false
 })
+const sleep = require('util').promisify(global.setTimeout)
 
 const normalizeFileNames = require('./fileNamer')
 const parseBills = require('./bills')
@@ -27,6 +28,7 @@ module.exports = new BaseKonnector(start)
 
 async function start(fields) {
   await login(fields)
+  await fetchIdentity()
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields)
   await saveBills(bills, fields, {
@@ -66,7 +68,7 @@ async function login(fields) {
     throw new Error(errors.VENDOR_DOWN)
   }
   if ($.html().includes("postMessage('ctx,EXISTEPAS")) {
-    log('error', "Fiscal number don't existing")
+    log('error', 'Fiscal number does not exist')
     throw new Error(errors.LOGIN_FAILED)
   }
 
@@ -89,18 +91,19 @@ async function login(fields) {
   // Expect a 200 received here. Login success and login failed come here
   if ($.html().includes("postMessage('ok,https://cfspart.impots.gouv.fr")) {
     log('info', 'Successfully logged in')
+    const confirmUrl = $.html().match(/postMessage\(.*,(.*),.*\)/)[1]
+    if (confirmUrl) await request(confirmUrl)
   } else if ($.html().includes("postMessage('lmdp")) {
     log('error', 'Password seems wrong')
     throw new Error(errors.LOGIN_FAILED)
   } else {
-    global.openInBrowser($)
     throw new Error('UNKOWN_LOGIN_STATUS')
   }
 }
 
 async function fetch() {
   /* Mandatory: Fetch details before documents, because pdf access is selective.
-     Hopefully, 'details' pdfs are include in 'all documents' pdfs.
+     Hopefully, 'details' pdfs are included in 'all documents' pdfs.
   */
   let { urlPrefix, token } = await fetchMenu()
 
@@ -168,6 +171,69 @@ async function getMyDetailAccountPage(urlPrefix, token) {
     }
   })
   return $
+}
+
+async function fetchIdentity() {
+  await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
+  await sleep(5000)
+  let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
+  const result = {}
+
+  result.situationFamiliale = $('#libelle-sit-fam')
+    .text()
+    .trim()
+  result.personnesACharge = Number(
+    $('.p-nb-pac')
+      .text()
+      .split(':')
+      .pop()
+      .trim()
+  )
+  result.tauxImposition = parseFloat(
+    $('#libelle-tx-foyer')
+      .text()
+      .replace(',', '.')
+      .replace('%', '')
+      .trim()
+  )
+  result.numeroFiscal = $('#head-usager-spi')
+    .text()
+    .trim()
+
+  $ = await request(
+    'https://cfspart.impots.gouv.fr/enp/ensu/chargementprofil.do'
+  )
+
+  $ = await request(
+    'https://cfspart.impots.gouv.fr/enp/ensu/affichageadresse.do'
+  )
+
+  const infos = scrape(
+    $,
+    { key: '.labelInfo', value: '.inputInfo' },
+    '.infoPersonnelle > ul > li'
+  )
+  for (const info of infos) {
+    result[info.key] = info.value
+  }
+
+  // result sample :
+  // {
+  //    situationFamiliale: 'marié(e)',
+  //    personnesACharge: 1,
+  //    tauxImposition: 0.0,
+  //    numeroFiscal: 'XXXXX',
+  //    'Prénom': 'PRENOM',
+  //    Nom: 'NOM',
+  //    'Date de naissance': '1 janvier 1980',
+  //    'Lieu de naissance': 'VILLE (57)',
+  //    'Adresse électronique validée': 'mail@mail.com',
+  //    'Téléphone portable': '+33 0606060606',
+  //    'Téléphone fixe': '+33 0909090909'
+  //    'Adresse postale': '2 RUE DU MOULIN 00001 VILLE'
+  //  }
+
+  return result
 }
 
 function parseMyDocuments($, urlPrefix) {
