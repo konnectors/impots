@@ -9,6 +9,7 @@ const {
   scrape,
   saveFiles,
   saveBills,
+  saveIdentity,
   errors
 } = require('cozy-konnector-libs')
 const request = requestFactory({
@@ -18,6 +19,9 @@ const request = requestFactory({
   json: false
 })
 const sleep = require('util').promisify(global.setTimeout)
+const moment = require('moment')
+moment.locale('fr')
+//moment.format('LL')
 
 const normalizeFileNames = require('./fileNamer')
 const parseBills = require('./bills')
@@ -28,7 +32,6 @@ module.exports = new BaseKonnector(start)
 
 async function start(fields) {
   await login(fields)
-  await fetchIdentity()
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields)
   await saveBills(bills, fields, {
@@ -46,6 +49,13 @@ async function start(fields) {
       'finances publiques'
     ]
   })
+  try {
+    const ident = await fetchIdentity()
+    await saveIdentity(ident, fields.login)
+  } catch (e) {
+    log('warn', 'Error during identity scraping or saving')
+    log('warn', e)
+  }
 }
 
 async function login(fields) {
@@ -179,26 +189,24 @@ async function fetchIdentity() {
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
   const result = {}
 
-  result.situationFamiliale = $('#libelle-sit-fam')
+  result.maritalStatus = $('#libelle-sit-fam')
     .text()
     .trim()
-  result.personnesACharge = Number(
+  result.numberOfDependants = Number(
     $('.p-nb-pac')
       .text()
       .split(':')
       .pop()
       .trim()
   )
-  result.tauxImposition = parseFloat(
-    $('#libelle-tx-foyer')
-      .text()
-      .replace(',', '.')
-      .replace('%', '')
-      .trim()
-  )
-  result.numeroFiscal = $('#head-usager-spi')
-    .text()
-    .trim()
+  // Not used for identities, but can be useful later
+  // result.tauxImposition = parseFloat(
+  //   $('#libelle-tx-foyer')
+  //     .text()
+  //     .replace(',', '.')
+  //     .replace('%', '')
+  //     .trim()
+  // )
 
   $ = await request(
     'https://cfspart.impots.gouv.fr/enp/ensu/chargementprofil.do'
@@ -207,22 +215,13 @@ async function fetchIdentity() {
   $ = await request(
     'https://cfspart.impots.gouv.fr/enp/ensu/affichageadresse.do'
   )
-
   const infos = scrape(
     $,
     { key: '.labelInfo', value: '.inputInfo' },
     '.infoPersonnelle > ul > li'
   )
-  for (const info of infos) {
-    result[info.key] = info.value
-  }
-
-  // result sample :
+  // datas extractible here :
   // {
-  //    situationFamiliale: 'marié(e)',
-  //    personnesACharge: 1,
-  //    tauxImposition: 0.0,
-  //    numeroFiscal: 'XXXXX',
   //    'Prénom': 'PRENOM',
   //    Nom: 'NOM',
   //    'Date de naissance': '1 janvier 1980',
@@ -230,10 +229,63 @@ async function fetchIdentity() {
   //    'Adresse électronique validée': 'mail@mail.com',
   //    'Téléphone portable': '+33 0606060606',
   //    'Téléphone fixe': '+33 0909090909'
-  //    'Adresse postale': '2 RUE DU MOULIN 00001 VILLE'
+  //    'Adresse postale': '2 RUE DU MOULIN00001 VILLE'
   //  }
 
+  // We extracted the address this way to be able to keep the cariage return information
+  //  and parse it
+  const formattedAddress = $('.infoPersonnelle ul li')
+    .eq(7)
+    .find('.inputInfo span')
+    .html()
+    .replace('<br>', '\n')
+  const linesAddress = formattedAddress.split('\n')
+  const lastLineAddress = linesAddress.pop() // Remove the element from array
+  const street = linesAddress.join('\n')
+  const postcode = lastLineAddress.match(/^\d{5}/)[0]
+  const city = lastLineAddress.replace(postcode, '').trim()
+
+  // Structuring as a io.cozy.contacts
+  const maritalStatusTable = {
+    'marié(e)': 'married',
+    'divorcé(e)/séparé(e)': 'separated',
+    'pacsé(e)': 'pacs',
+    célibataire: 'single',
+    'veuf(ve)': 'widowed'
+  }
+  result.maritalStatus = maritalStatusTable[result.maritalStatus]
+  result.address = [{ formattedAddress, street, postcode, city }]
+
+  for (const info of infos) {
+    if (info.key === 'Prénom') {
+      result.name = { givenName: info.value }
+    } else if (info.key === 'Nom') {
+      result.name.familyName = info.value
+    } else if (info.key === 'Date de naissance') {
+      result.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format()
+    } else if (info.key === 'Lieu de naissance') {
+      result.birthPlace = info.value
+    } else if (info.key === 'Adresse électronique validée') {
+      result.email = [{ address: info.value }]
+    } else if (info.key === 'Téléphone portable') {
+      result.phone = [{ type: 'mobile', number: formatPhone(info.value) }]
+    } else if (info.key === 'Téléphone fixe') {
+      result.phone.push({ type: 'home', number: formatPhone(info.value) })
+    }
+  }
   return result
+}
+
+/* The website let the user to mistake with or without a leading 0 at french number
+ *  We remove it if we detect a french prefix (+33) and a leading 0
+ */
+function formatPhone(phone) {
+  if (phone.match(/^\+33 0/)) {
+    log('debug', 'French phone found with leading 0, removing')
+    return phone.replace('+33 0', '+33 ')
+  } else {
+    return phone
+  }
 }
 
 function parseMyDocuments($, urlPrefix) {
