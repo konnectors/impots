@@ -9,7 +9,6 @@ const {
   scrape,
   saveFiles,
   saveBills,
-  saveIdentity,
   errors
 } = require('cozy-konnector-libs')
 const request = requestFactory({
@@ -18,10 +17,8 @@ const request = requestFactory({
   jar: true,
   json: false
 })
-const sleep = require('util').promisify(global.setTimeout)
 const moment = require('moment')
 moment.locale('fr')
-//moment.format('LL')
 
 const normalizeFileNames = require('./fileNamer')
 const parseBills = require('./bills')
@@ -51,7 +48,7 @@ async function start(fields) {
   })
   try {
     const ident = await fetchIdentity()
-    await saveIdentity(ident, fields.login)
+    await this.saveIdentity(ident, fields.login)
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
     log('warn', e)
@@ -184,8 +181,8 @@ async function getMyDetailAccountPage(urlPrefix, token) {
 }
 
 async function fetchIdentity() {
+  // Prefetch mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
-  await sleep(5000)
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
   const result = {}
 
@@ -268,9 +265,21 @@ async function fetchIdentity() {
     } else if (info.key === 'Adresse électronique validée') {
       result.email = [{ address: info.value }]
     } else if (info.key === 'Téléphone portable') {
-      result.phone = [{ type: 'mobile', number: formatPhone(info.value) }]
+      if (info.value != '') {
+        if (result.phone) {
+          result.phone.push({ type: 'mobile', number: formatPhone(info.value) })
+        } else {
+          result.phone = [{ type: 'mobile', number: formatPhone(info.value) }]
+        }
+      }
     } else if (info.key === 'Téléphone fixe') {
-      result.phone.push({ type: 'home', number: formatPhone(info.value) })
+      if (info.value != '') {
+        if (result.phone) {
+          result.phone.push({ type: 'home', number: formatPhone(info.value) })
+        } else {
+          result.phone = [{ type: 'home', number: formatPhone(info.value) }]
+        }
+      }
     }
   }
   return result
