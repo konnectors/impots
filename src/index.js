@@ -259,7 +259,9 @@ async function fetchIdentity() {
     } else if (info.key === 'Nom') {
       result.name.familyName = info.value
     } else if (info.key === 'Date de naissance') {
-      result.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format('YYYY-MM-DD')
+      result.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format(
+        'YYYY-MM-DD'
+      )
     } else if (info.key === 'Lieu de naissance') {
       result.birthPlace = info.value
     } else if (info.key === 'Adresse électronique validée') {
