@@ -30,7 +30,10 @@ module.exports = new BaseKonnector(start)
 async function start(fields) {
   await login(fields)
   const [documents, bills] = await fetch()
-  await saveFiles(documents, fields)
+  await saveFiles(documents, fields, {
+    sourceAccount: this._account._id,
+    sourceAccountIdentifier: fields.login
+  })
   await saveBills(bills, fields, {
     identifiers: [
       'impot',
@@ -44,7 +47,9 @@ async function start(fields) {
       'tresor public',
       'finances pub',
       'finances publiques'
-    ]
+    ],
+    sourceAccount: this._account._id,
+    sourceAccountIdentifier: fields.login
   })
   try {
     const ident = await fetchIdentity()
@@ -334,7 +339,7 @@ async function prefetchUrls(documents) {
   const result = []
   for (let doc of documents) {
     if (doc.fileurl == undefined) {
-      log('debug', 'No url provide, delete attribut')
+      log('debug', 'No url provided, delete attribute')
       delete doc.fileurl
       result.push(doc)
     } else {
