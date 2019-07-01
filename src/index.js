@@ -32,7 +32,8 @@ async function start(fields) {
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields, {
     sourceAccount: this._account._id,
-    sourceAccountIdentifier: fields.login
+    sourceAccountIdentifier: fields.login,
+    contentType: 'application/pdf'
   })
   await saveBills(bills, fields, {
     identifiers: [
