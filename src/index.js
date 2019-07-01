@@ -50,7 +50,8 @@ async function start(fields) {
       'finances publiques'
     ],
     sourceAccount: this._account._id,
-    sourceAccountIdentifier: fields.login
+    sourceAccountIdentifier: fields.login,
+    contentType: 'application/pdf'
   })
   try {
     const ident = await fetchIdentity()
