@@ -19,6 +19,7 @@ const request = requestFactory({
 })
 const moment = require('moment')
 moment.locale('fr')
+const sleep = require('util').promisify(global.setTimeout)
 
 const normalizeFileNames = require('./fileNamer')
 const parseBills = require('./bills')
@@ -188,6 +189,7 @@ async function getMyDetailAccountPage(urlPrefix, token) {
 async function fetchIdentity() {
   // Prefetch mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
+  await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
   const result = {}
 
