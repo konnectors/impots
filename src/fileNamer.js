@@ -87,7 +87,7 @@ function normalizeFileNames(documents) {
             datetime: date,
             datetimeLabel: 'issueDate',
             contentAuthor: 'impots.gouv',
-            subject: [subject],
+            subjects: [subject],
             issueDate: date
           }
         }
@@ -101,7 +101,7 @@ function normalizeFileNames(documents) {
                 getNameDate(doc) || moment(`${annee}-01-01T12:00:00`).toDate(),
               datetimeLabel: 'issueDate',
               contentAuthor: 'impots.gouv',
-              subject: [subject],
+              subjects: [subject],
               formReference: typeFormLabel.slice(1),
               issueDate:
                 getNameDate(doc) || moment(`${annee}-01-01T12:00:00`).toDate()

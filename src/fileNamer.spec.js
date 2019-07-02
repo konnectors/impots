@@ -32,7 +32,7 @@ describe('File normalizer', () => {
         datetime: new Date('2014-09-01T10:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['income'],
+        subjects: ['income'],
         issueDate: new Date('2014-09-01T10:00:00.000Z')
       }
     ]
@@ -59,7 +59,7 @@ describe('File normalizer', () => {
         datetime: new Date('2018-04-27T22:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['income'],
+        subjects: ['income'],
         issueDate: new Date('2018-04-27T22:00:00.000Z')
       }
     ]
@@ -86,7 +86,7 @@ describe('File normalizer', () => {
         datetime: new Date('2016-09-15T10:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['residence'],
+        subjects: ['residence'],
         issueDate: new Date('2016-09-15T10:00:00.000Z')
       }
     ]
@@ -113,7 +113,7 @@ describe('File normalizer', () => {
         datetime: new Date('2017-02-05T23:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['residence'],
+        subjects: ['residence'],
         issueDate: new Date('2017-02-05T23:00:00.000Z')
       }
     ]
@@ -139,7 +139,7 @@ describe('File normalizer', () => {
         datetime: new Date('2018-10-15T10:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['property'],
+        subjects: ['property'],
         issueDate: new Date('2018-10-15T10:00:00.000Z')
       }
     ]
@@ -194,7 +194,7 @@ describe('File normalizer', () => {
         datetime: new Date('2018-09-15T10:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['residence'],
+        subjects: ['residence'],
         issueDate: new Date('2018-09-15T10:00:00.000Z')
       }
     ]
@@ -222,7 +222,7 @@ describe('File normalizer', () => {
         datetime: new Date('2018-01-01T11:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['audiovisual'],
+        subjects: ['audiovisual'],
         issueDate: new Date('2018-01-01T11:00:00.000Z')
       }
     ]
@@ -249,7 +249,7 @@ describe('File normalizer', () => {
         datetime: new Date('2011-01-01T11:00:00.000Z'),
         datetimeLabel: 'issueDate',
         contentAuthor: 'impots.gouv',
-        subject: ['income'],
+        subjects: ['income'],
         formReference: '2042',
         issueDate: new Date('2011-01-01T11:00:00.000Z')
       }
