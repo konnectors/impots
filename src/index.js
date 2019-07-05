@@ -241,8 +241,10 @@ async function fetchIdentity() {
     .find('.inputInfo span')
     .html()
     .replace('<br>', '\n')
-  const linesAddress = formattedAddress.split('\n')
-  const lastLineAddress = linesAddress.pop() // Remove the element from array
+
+  const linesAddress = formattedAddress.split(/\n|<br>/)
+  // <br> is found in some long address as line separator
+  const lastLineAddress = linesAddress.pop() // Remove the city line from array
   const street = linesAddress.join('\n')
   const postcode = lastLineAddress.match(/^\d{5}/)[0]
   const city = lastLineAddress.replace(postcode, '').trim()
