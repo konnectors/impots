@@ -73,6 +73,12 @@
         "identities": {
           "description": "Utilise pour sauvegarder votre identité"
         }
+      },
+      "fields": {
+        "login": {
+          "label": "Numéro fiscal",
+          "placeholder": "13 chiffres"
+        }
       }
     },
     "en": {
@@ -87,6 +93,12 @@
         },
         "identities": {
           "description": "Required to save your identity"
+        }
+      },
+      "fields": {
+        "login": {
+          "label": "Tax number",
+          "placeholder": "13 digits"
         }
       }
     }
