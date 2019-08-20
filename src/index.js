@@ -117,6 +117,52 @@ async function login(fields) {
   }
 }
 
+async function getDocuments() { // eslint-disable-line
+  log('info', 'Getting documents on new interface')
+  let docs = []
+  const $ = await request(`${baseUrl}/enp/ensu/documents.do?n=0`)
+  const years = Array.from(
+    $('.date')
+      .find('a')
+      .map((idx, el) => {
+        const year = $(el).text()
+        if (year.match(/^\d{4}$/) === null) {
+          throw 'Docs year scraping failed'
+        }
+        return year
+      })
+  )
+  log('debug', `Docs available for years ${years}`)
+  for (const year of years) {
+    const $year = await request(`${baseUrl}/enp/ensu/documents.do?n=${year}`)
+    const tmpDocs = Array.from(
+      $year('.documents')
+        .find('div .document')
+        .map((idx, el) => {
+          const label = $year(el)
+            .find('div .texte')
+            .text()
+            .trim()
+          const idEnsua = $year(el)
+            .find('input')
+            .attr('value')
+          return {
+            year,
+            label,
+            idEnsua,
+            filename: `${label}.pdf`,
+            fileurl:
+              `https://cfspart.impots.gouv.fr/enp/ensu/Affichage_Document_PDF` +
+              `?idEnsua=${idEnsua}`
+          }
+        })
+    )
+    log('info', `${tmpDocs.length} docs found for year ${year}`)
+    docs = docs.concat(tmpDocs)
+  }
+  return docs
+}
+
 async function fetch() {
   /* Mandatory: Fetch details before documents, because pdf access is selective.
      Hopefully, 'details' pdfs are included in 'all documents' pdfs.
