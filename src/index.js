@@ -55,6 +55,7 @@ async function start(fields) {
     contentType: 'application/pdf'
   })
   try {
+    log('info', 'Fetching identity ...')
     const ident = await fetchIdentity()
     await this.saveIdentity(ident, fields.login)
   } catch (e) {
