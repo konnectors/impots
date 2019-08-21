@@ -21,7 +21,7 @@ const moment = require('moment')
 moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
-const normalizeFileNames = require('./fileNamer')
+const { normalizeFileNames, evaluateNewLabel } = require('./fileNamer')
 const parseBills = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
@@ -31,6 +31,7 @@ module.exports = new BaseKonnector(start)
 async function start(fields) {
   await login(fields)
   const [documents, bills] = await fetch()
+
   await saveFiles(documents, fields, {
     sourceAccount: this._account._id,
     sourceAccountIdentifier: fields.login,
@@ -60,6 +61,19 @@ async function start(fields) {
     await this.saveIdentity(ident, fields.login)
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
+    log('warn', e)
+  }
+  try {
+    // TEMP LOGGING VAR NEED TO BE REMOVED
+    const L = false //log without private data
+    const LWP = false //log with private data (label can contain address)
+    log('info', 'Try new fetching...')
+    let newDocuments = await getDocuments()
+    log('info', `Found ${newDocuments.length} documents in new pages`)
+    newDocuments = evaluateNewLabel(newDocuments, L, LWP)
+    tryMatching(newDocuments, documents, L, LWP)
+  } catch (e) {
+    log('warn', 'Error during new fetching')
     log('warn', e)
   }
 }
@@ -117,7 +131,8 @@ async function login(fields) {
   }
 }
 
-async function getDocuments() { // eslint-disable-line
+// eslint-disable-next-line
+async function getDocuments() {
   log('info', 'Getting documents on new interface')
   let docs = []
   const $ = await request(`${baseUrl}/enp/ensu/documents.do?n=0`)
@@ -405,4 +420,33 @@ async function prefetchUrls(documents) {
     }
   }
   return result
+}
+
+function tryMatching(newDocs, oldDocs, L, LWP) {
+  let mismatch = 0
+  log('info', 'Trying to match olds and news')
+  for (const currentNewIndex in newDocs) {
+    const currentNew = newDocs[currentNewIndex]
+    let matches = []
+    for (const currentOld of oldDocs) {
+      const regex = new RegExp(`${currentNew.oldname}\\d{14}.pdf`)
+      const match = currentOld.filename.match(regex)
+      if (match) {
+        matches.push(match)
+      }
+    }
+    if (matches.length == 0 || matches.length > 1) {
+      mismatch++
+      if (L) {
+        log('info', 'multi matches or no match')
+      }
+      if (LWP) {
+        log('info', matches)
+        log('info', `Label: ${currentNew.label}`)
+        log('info', `Try Matching: ${currentNew.oldname}`)
+      }
+    }
+  }
+  log('info', `Mistaches: ${mismatch} on ${newDocs.length} new docs`)
+  log('info', `#Mismatch#: ${((100 * mismatch) / newDocs.length).toFixed(2)}%`)
 }
