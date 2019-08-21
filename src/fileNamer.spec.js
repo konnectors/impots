@@ -1,4 +1,111 @@
-const normalizeFileNames = require('./fileNamer')
+const { normalizeFileNames, evaluateNewLabel } = require('./fileNamer')
+
+describe('New file Label evaluation', () => {
+  it('ImpotsRevenus', () => {
+    const input = [
+      {
+        label: `Avis d'impôt 2019 sur les revenus et prélèvements sociaux 2018`,
+        year: '2019'
+      },
+      { label: `Avis d'impôt 2018 sur les revenus 2017`, year: '2018' },
+      {
+        label: `Avis de situation déclarative à l'impôt 2019 sur les revenus 2018 (le 09/05/2019, à 21:49)`,
+        year: '2019'
+      },
+      {
+        label: `Avis de situation déclarative à l'impôt 2018 sur les revenus 2017 (le 28/04/2018, à 07:41)`,
+        year: '2018'
+      },
+      {
+        label: `Déclaration en ligne 2019 de revenus (le 09/05/2019, à 21:49)`,
+        year: '2019'
+      },
+      {
+        label: `Déclaration en ligne 2018 de revenus (le 28/04/2018, à 07:41)`,
+        year: '2018'
+      },
+      {
+        label: `Déclaration en ligne 2019 de revenus : réductions et crédits d'impôt (le 09/05/2019, à 21:49)`,
+        year: '2019'
+      },
+      {
+        label: `Déclaration en ligne 2018 de revenus : réductions et crédits d'impôt (le 28/04/2018, à 07:41)`,
+        year: '2018'
+      },
+      {
+        label: `Accusé de réception n° 19781234512345 de télédéclaration 2019 de revenus`,
+        year: '2019'
+      },
+      {
+        label: `Accusé de réception n° 18781234554321 de télédéclaration 2018 de revenus`,
+        year: '2018'
+      },
+      { label: `` },
+      { label: `` },
+      { label: `` },
+      { label: `` }
+    ]
+    const output = [
+      {
+        category: 'ImpotsRevenus',
+        form: '',
+        label: "Avis d'impôt 2019 sur les revenus et prélèvements sociaux 2018",
+        oldname: '2019-ImpotsRevenus-Avis.pdf',
+        type: 'Avis',
+        year: '2019'
+      }
+    ]
+    expect(evaluateNewLabel(input)).toEqual(output)
+  }),
+    it('TaxeHabitation', () => {
+      const input = [
+        //      { label: `` },
+        { label: `Avis échéancier taxe d'habitation-CAP 2019` },
+        {
+          label: `Avis de taxe d'habitation-CAP 2018  - 2 AV NOM AVENUE, 78 COMM U NE`
+        },
+        { label: `Avis échéancier taxe d'habitation-CAP 2018`, year: '2018' },
+        { label: `` },
+        { label: `` },
+        { label: `` }
+      ]
+      const output = [
+        {
+          category: 'ImpotsRevenus',
+          form: '',
+          label:
+            "Avis d'impôt 2019 sur les revenus et prélèvements sociaux 2018",
+          oldname: '2019-ImpotsRevenus-Avis.pdf',
+          type: 'Avis',
+          year: '2019'
+        }
+      ]
+      expect(evaluateNewLabel(input)).toEqual(output)
+    }),
+    it('TaxeFoncière', () => {
+      const input = [
+        { label: `Avis de taxes foncières 2018  - 78 COMM U NE` },
+        { label: `Avis de taxes foncières 2018 suite` },
+        { label: `` },
+        { label: `` },
+        { label: `` },
+        { label: `` },
+        { label: `` }
+      ]
+      const output = [
+        {
+          category: 'ImpotsRevenus',
+          form: '',
+          label:
+            "Avis d'impôt 2019 sur les revenus et prélèvements sociaux 2018",
+          oldname: '2019-ImpotsRevenus-Avis.pdf',
+          type: 'Avis',
+          year: '2019'
+        }
+      ]
+      expect(evaluateNewLabel(input)).toEqual(output)
+    })
+})
 
 describe('File normalizer', () => {
   it('should normalize nominal files', () => {
