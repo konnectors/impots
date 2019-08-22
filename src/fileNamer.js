@@ -175,7 +175,7 @@ function evaluateNewLabel(documents, L, LWP) {
       continue
       //throw 'Type Unknown'
     }
-    doc.form = evalForm(doc, doc.year, doc.category)
+    doc.form = evalForm(doc)
     if (doc.form === undefined) {
       if (LWP) {
         log('info', `New label: ${doc.label}`)
@@ -188,7 +188,7 @@ function evaluateNewLabel(documents, L, LWP) {
 
     // As in old url request year notation change in 2013, there is no 2013 docs,
     // and 2013 docs are named 2012, 2012 -> 2011, ...
-    const apparentYear = (doc.year<2014) ? doc.year-1 : doc.year
+    const apparentYear = doc.year < 2014 ? doc.year - 1 : doc.year
     doc.oldname =
       `${apparentYear}-${doc.category}-${doc.type}` +
       (doc.form === '' ? '-' : `-${doc.form}-`)
@@ -245,8 +245,8 @@ function evalType(doc) {
   }
 }
 
-function evalForm(doc, year, category) {
-  if (category === 'ImpotsRevenus') {
+function evalForm(doc) {
+  if (doc.category === 'ImpotsRevenus') {
     if (doc.label.match(/^Accusé de réception/)) {
       return ''
     } else if (doc.label.match(/^Avis d'impôt/)) {
@@ -257,28 +257,38 @@ function evalForm(doc, year, category) {
       return '812'
     } else if (doc.label.match(/^Avis de situation déclarative/)) {
       return 'SituationDéclarative'
-    } else if (doc.label.match(/^Déclaration en ligne \d{4} de revenus \(/) ||
-               doc.label.match(/^Déclaration \d{4} de revenus$/)) {
+    } else if (
+      doc.label.match(/^Déclaration en ligne \d{4} de revenus \(/) ||
+      doc.label.match(/^Déclaration \d{4} de revenus$/)  //Old not online déclaration
+    ) {
       return '2042'
-    } else if (doc.label.match(/^Déclaration complémentaire en ligne \d{4} de revenus \(/)) {
+    } else if (
+      doc.label.match(
+        /^Déclaration complémentaire en ligne \d{4} de revenus \(/
+      )
+    ) {
       return '2042C'
-    } else if (doc.label.match(
-      //eslint-disable-next-line
+    } else if (
+      doc.label.match(
+        //eslint-disable-next-line
         /^Déclaration en ligne \d{4} de revenus : revenus des professions non salariées \(/
-    )) {
+      )
+    ) {
       return '2042CPRO'
-    } else if (doc.label.match(
-      //eslint-disable-next-line
+    } else if (
+      doc.label.match(
+        //eslint-disable-next-line
         /^Déclaration en ligne \d{4} de revenus \: réductions et crédits d'impôt \(/
-    )) {
+      )
+    ) {
       return '2042RICI'
     }
   }
 
   // Taxe d'habitation
-  if (category === 'TaxeHabitation') {
+  if (doc.category === 'TaxeHabitation') {
     if (doc.label.match(/^Avis de taxe d'habitation/)) {
-      if (year >= 2019) {
+      if (doc.year >= 2019) {
         return ''
       } else {
         return 'Primitif'
@@ -289,14 +299,16 @@ function evalForm(doc, year, category) {
   }
 
   // Taxe foncière
-  if (category === 'TaxeFoncière') {
-    if (doc.label.match(/^Avis de taxes foncières/) && doc.label.match(/suite/)) {
+  if (doc.category === 'TaxeFoncière') {
+    if (
+      doc.label.match(/^Avis de taxes foncières/) &&
+      doc.label.match(/suite/)
+    ) {
       return 'Suite'
-    }
-    else if (doc.label.match(/^Avis de taxes foncières/)) {
+    } else if (doc.label.match(/^Avis de taxes foncières/)) {
       return 'Primitif'
     }
   }
-  // Catch unknown form
+  // Finally, if no doc.category match
   return undefined
 }

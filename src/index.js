@@ -441,12 +441,10 @@ function tryMatching(newDocs, oldDocs, L, LWP) {
       if (L) {
         if (matches.length == 0) {
           log('info', `!! No match !!`)
-
         }
         if (matches.length > 1) {
           log('info', `!! Multi match !!`)
         }
-
       }
       if (LWP) {
         log('info', matches)
