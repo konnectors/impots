@@ -186,9 +186,13 @@ function evaluateNewLabel(documents, L, LWP) {
       //throw 'Form Unknown'
     }
 
+    // As in old url request year notation change in 2013, there is no 2013 docs,
+    // and 2013 docs are named 2012, 2012 -> 2011, ...
+    const apparentYear = (doc.year<2014) ? doc.year-1 : doc.year
     doc.oldname =
-      `${doc.year}-${doc.category}-${doc.type}` +
+      `${apparentYear}-${doc.category}-${doc.type}` +
       (doc.form === '' ? '-' : `-${doc.form}-`)
+
     if (LWP) {
       log('info', '-----')
       log('info', `New label: ${doc.label}`)
@@ -231,7 +235,7 @@ function evalType(doc) {
   } else if (
     doc.label.match(/^Déclaration en ligne/) ||
     doc.label.match(/^Déclaration complémentaire/) ||
-    doc.label.match(/^Déclaration/) // recoupe les 2 autres
+    doc.label.match(/^Déclaration/) // warning, if ok, no need of 2 precedent matches
   ) {
     return 'Formulaire'
   } else if (doc.label.match(/^Accusé de réception/)) {
@@ -253,14 +257,20 @@ function evalForm(doc, year, category) {
       return '812'
     } else if (doc.label.match(/^Avis de situation déclarative/)) {
       return 'SituationDéclarative'
-    } else if (doc.label.match(/^Déclaration en ligne \d{4} de revenus \(/)) {
+    } else if (doc.label.match(/^Déclaration en ligne \d{4} de revenus \(/) ||
+               doc.label.match(/^Déclaration \d{4} de revenus$/)) {
       return '2042'
-    } else if (
-      doc.label.match(
-        //eslint-disable-next-line
-          /^Déclaration en ligne 2019 de revenus \: réductions et crédits d'impôt \(/
-      )
-    ) {
+    } else if (doc.label.match(/^Déclaration complémentaire en ligne \d{4} de revenus \(/)) {
+      return '2042C'
+    } else if (doc.label.match(
+      //eslint-disable-next-line
+        /^Déclaration en ligne \d{4} de revenus : revenus des professions non salariées \(/
+    )) {
+      return '2042CPRO'
+    } else if (doc.label.match(
+      //eslint-disable-next-line
+        /^Déclaration en ligne \d{4} de revenus \: réductions et crédits d'impôt \(/
+    )) {
       return '2042RICI'
     }
   }
@@ -280,7 +290,10 @@ function evalForm(doc, year, category) {
 
   // Taxe foncière
   if (category === 'TaxeFoncière') {
-    if (doc.label.match(/^Avis de taxes foncières/)) {
+    if (doc.label.match(/^Avis de taxes foncières/) && doc.label.match(/suite/)) {
+      return 'Suite'
+    }
+    else if (doc.label.match(/^Avis de taxes foncières/)) {
       return 'Primitif'
     }
   }

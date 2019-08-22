@@ -429,7 +429,8 @@ function tryMatching(newDocs, oldDocs, L, LWP) {
     const currentNew = newDocs[currentNewIndex]
     let matches = []
     for (const currentOld of oldDocs) {
-      const regex = new RegExp(`${currentNew.oldname}\\d{14}.pdf`)
+      // Adonis number found before .pdf is 13 or 14 digits in our data
+      const regex = new RegExp(`${currentNew.oldname}\\d{13,14}.pdf`)
       const match = currentOld.filename.match(regex)
       if (match) {
         matches.push(match)
@@ -438,7 +439,14 @@ function tryMatching(newDocs, oldDocs, L, LWP) {
     if (matches.length == 0 || matches.length > 1) {
       mismatch++
       if (L) {
-        log('info', 'multi matches or no match')
+        if (matches.length == 0) {
+          log('info', `!! No match !!`)
+
+        }
+        if (matches.length > 1) {
+          log('info', `!! Multi match !!`)
+        }
+
       }
       if (LWP) {
         log('info', matches)
