@@ -69,6 +69,11 @@ async function start(fields) {
     const LWP = false //log with private data (label can contain address)
     log('info', 'Try new fetching...')
     let newDocuments = await getDocuments()
+    await saveFiles(newDocuments, fields, {
+      sourceAccount: this._account._id,
+      sourceAccountIdentifier: fields.login,
+      contentType: 'application/pdf'
+    })
     log('info', `Found ${newDocuments.length} documents in new pages`)
     newDocuments = evaluateNewLabel(newDocuments, L, LWP)
     tryMatching(newDocuments, documents, L, LWP)
