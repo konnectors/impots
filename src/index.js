@@ -11,6 +11,8 @@ const {
   saveBills,
   errors
 } = require('cozy-konnector-libs')
+
+const get = require('lodash/get')
 const request = requestFactory({
   // debug: true,
   cheerio: true,
@@ -28,13 +30,21 @@ const baseUrl = 'https://cfspart.impots.gouv.fr'
 
 module.exports = new BaseKonnector(start)
 
+function shouldReplaceFile(file) {
+  return (
+    !get(file, 'attributes.metadata.oldSiteMetadata') &&
+    !get(file, 'metadata.oldSiteMetadata')
+  )
+}
+
 async function start(fields) {
   await login(fields)
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields, {
     sourceAccount: this._account._id,
     sourceAccountIdentifier: fields.login,
-    contentType: 'application/pdf'
+    contentType: 'application/pdf',
+    shouldReplaceFile
   })
   await saveBills(bills, fields, {
     identifiers: [
@@ -52,7 +62,8 @@ async function start(fields) {
     ],
     sourceAccount: this._account._id,
     sourceAccountIdentifier: fields.login,
-    contentType: 'application/pdf'
+    contentType: 'application/pdf',
+    shouldReplaceFile
   })
   try {
     log('info', 'Fetching identity ...')
