@@ -57,6 +57,8 @@ function normalizeFileNames(documents) {
       const category = mapValue(categoryMap, typeImpot)
       const typeFormLabel = mapValue(formTypeMap, typeForm)
       const documentTypeLabel = mapValue(documentTypeMap, typeDoc)
+
+      const oldSiteMetadata = { typeImpot, typeForm, typeDoc, numeroAdonis }
       doc.filename = `${annee}${category}${documentTypeLabel}${typeFormLabel}-${numeroAdonis}.pdf`
 
       if (documentTypeLabel === '-Avis') {
@@ -82,6 +84,7 @@ function normalizeFileNames(documents) {
 
         doc.fileAttributes = {
           metadata: {
+            oldSiteMetadata,
             classification: 'tax_notice',
             subClassification,
             datetime: date,
@@ -96,6 +99,7 @@ function normalizeFileNames(documents) {
         if (subject) {
           doc.fileAttributes = {
             metadata: {
+              oldSiteMetadata,
               classification: 'tax_return',
               datetime:
                 getNameDate(doc) || moment(`${annee}-01-01T12:00:00`).toDate(),
@@ -111,6 +115,7 @@ function normalizeFileNames(documents) {
       } else if (documentTypeLabel.slice(1) === 'AccuséRéception') {
         doc.fileAttributes = {
           metadata: {
+            oldSiteMetadata,
             classification: 'mail',
             datetime:
               getNameDate(doc) || moment(`${annee}-01-01T12:00:00`).toDate(),
