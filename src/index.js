@@ -9,7 +9,9 @@ const {
   scrape,
   saveFiles,
   saveBills,
-  errors
+  errors,
+  cozyClient,
+  utils
 } = require('cozy-konnector-libs')
 
 const get = require('lodash/get')
@@ -24,6 +26,7 @@ moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
 const normalizeFileNames = require('./fileNamer')
+const appendMetadata = require('./metadata')
 const parseBills = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
@@ -39,6 +42,21 @@ function shouldReplaceFile(file) {
 
 async function start(fields) {
   await login(fields)
+  const oldFiles = await getOldFiles(fields.folderPath) // eslint-disable-line
+  try {
+    let newDocuments = await getDocuments()
+    newDocuments = appendMetadata(newDocuments)
+
+    await saveFiles(newDocuments, fields, {
+      sourceAccount: this._account._id,
+      sourceAccountIdentifier: fields.login,
+      contentType: 'application/pdf'
+    })
+  } catch (e) {
+    log('warn', 'Error during new documents collection')
+    log('warn', e)
+  }
+
   const [documents, bills] = await fetch()
   await saveFiles(documents, fields, {
     sourceAccount: this._account._id,
@@ -128,7 +146,14 @@ async function login(fields) {
   }
 }
 
-async function getDocuments() { // eslint-disable-line
+async function getOldFiles(folderPath) {
+  const dir = await cozyClient.files.statByPath(folderPath)
+  console.log(dir)
+  const files = await utils.queryAll('io.cozy.files', { dir_id: dir._id })
+  return files
+}
+
+async function getDocuments() {
   log('info', 'Getting documents on new interface')
   let docs = []
   const $ = await request(`${baseUrl}/enp/ensu/documents.do?n=0`)
@@ -157,11 +182,20 @@ async function getDocuments() { // eslint-disable-line
           const idEnsua = $year(el)
             .find('input')
             .attr('value')
+          let filename = `${year}-${label}.pdf`
+          // Replace / and : found in some label
+          // 1) in date (01/01/2018 -> 01-01-2018)
+          filename = filename.replace(/\//g, '-')
+          // 2) in complementrary form
+          filename = filename.replace(' : ', ' - ') // eslint-disable-line
+          filename = filename.replace(' : ', ' - ')
+          // 3) replace time (19:26 -> 19h26)
+          filename = filename.replace(':', 'h')
           return {
             year,
             label,
             idEnsua,
-            filename: `${label}.pdf`,
+            filename,
             fileurl:
               `https://cfspart.impots.gouv.fr/enp/ensu/Affichage_Document_PDF` +
               `?idEnsua=${idEnsua}`
