@@ -1,146 +1,148 @@
-const { log } = require('cozy-konnector-libs')
-const moment = require('moment')
+const { requestFactory, log } = require('cozy-konnector-libs')
+const request = requestFactory({
+  //debug: true,
+  cheerio: true,
+  jar: true,
+  json: false
+})
+const requestNoCheerio = requestFactory({
+  cheerio: false,
+  jar: true,
+  json: false
+})
 
-module.exports = parseBills
+module.exports = { getBills }
 
-function parseBills($, urlPrefix, baseUrl) {
-  /* This big function scrape the tab with multiple column size and
-     no specific characteristics to stick
-  */
-  log('info', 'Parsing bills from detailAccount page')
-  let masterBillLink, currentYear
-  let bills = []
-  const lines = Array.from($('td[class=cssFondTable]').find('table tr'))
-  lines.forEach((line, index) => {
-    const $line = $(line)
-    if (
-      // Throw first line as title
-      index === 0
-    ) {
-      log('debug', 'Throw line 0 as title')
-    } else if (
-      // If line is a master line(2 column), store link and year
-      $line.find('td').length === 2 &&
-      $line
-        .find('td')
-        .eq(1)
-        .attr('colspan') == 5
-    ) {
-      log('debug', `Master line detected`)
-      masterBillLink = extractLinkInMasterLine($line)
-      currentYear = extractYearInMasterLine($line)
-    } else if (
-      // If line is a same year master line(1 column), store link
-      $line.find('td').length === 1 &&
-      $line.find('td').attr('colspan') == 5
-    ) {
-      log('debug', `Master same year line detected`)
-      masterBillLink = extractLinkInMasterLine($line)
-    } else if (
-      // If line is a payment (3 column), make a bill
-      $line.find('td').length === 3 &&
-      $line
-        .find('td')
-        .eq(2)
-        .text() != '\xa0' // Unbreakable-space as empty cell
-    ) {
-      log('debug', 'Payment line with 3 column detected')
-      let bill = scrapeLine($line, masterBillLink, urlPrefix, 3, baseUrl)
-      if (bill != undefined) {
-        bills.push(bill)
-      }
-    } else if (
-      // If line is a payment(5 column), make a bill
-      $line.find('td').length === 5 &&
-      $line
-        .find('td')
-        .eq(3)
-        .text() != '\xa0' // Unbreakable-space as empty cell
-    ) {
-      log('debug', 'Payment line with 5 column detected')
-      let bill = scrapeLine($line, masterBillLink, urlPrefix, 5, baseUrl)
-      if (bill != undefined) {
-        bills.push(bill)
-      }
-    } else if (
-      // If line is a refund
-      $line.find('td').length === 1 &&
-      $line.find('td').attr('colspan') == 4
-    ) {
-      log('debug', 'Refund line detected')
-      const bill = scrapeRefundLine(
-        $line,
-        masterBillLink,
-        urlPrefix,
-        currentYear,
-        baseUrl
-      )
-      bills.push(bill)
+async function getBills(login) {
+  let cfsuUrl
+  await request({
+    url: 'https://cfspart.impots.gouv.fr/enp/ensu/interpaiements.do'
+  })
+  await request({
+    url: 'https://cfspart.impots.gouv.fr/enp/ensu/paiementimpots.do'
+  })
+  try {
+    await requestNoCheerio({
+      url: `https://cfspart.impots.gouv.fr/acces-usager/ensu/compteENSU.html`,
+      method: 'GET',
+      qs: {
+        spi: login
+      },
+      followRedirect: false,
+      followAllRedirects: false
+    })
+  } catch (e) {
+    if (e.statusCode === 302) {
+      // Expect cookie setting and catching an url like :
+      //   https://cfspart.impots.gouv.fr/cfsu-XX/compteENSU.html?spi=05050505050
+      cfsuUrl = e.response.headers.location
+    } else {
+      throw e
+    }
+  }
+  cfsuUrl = cfsuUrl.split('?')[0]
+  const $firstForm = await request({
+    headers: {
+      // Force user agent here to avoid error 500 on request
+      'User-Agent':
+        'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0'
+    },
+    url: cfsuUrl,
+    method: 'GET',
+    qs: {
+      spi: login
     }
   })
+  const CSRFToken = $firstForm('input[name="CSRFTOKEN"]').attr('value')
+  log('debug', `CSRFTOKEN is ${CSRFToken}`)
+  const formLink = $firstForm('form[name="compteENSUForm"]').attr('action')
+  log('debug', `Form Url is ${formLink}`)
+  const $fullForm = await request({
+    url: `https://cfspart.impots.gouv.fr${formLink}`,
+    method: 'POST',
+    form: {
+      CSRFTOKEN: CSRFToken,
+      date: 'gardeDate',
+      typeImpot: 'toutImpot',
+      tresorerieCodee: 'toutesTresoreries',
+      annee: 'all',
+      compte: 'compteDetaille'
+    }
+  })
+  const bills = extractBills($fullForm)
   return bills
 }
 
-function extractLinkInMasterLine($line) {
-  let link = $line.find('a').attr('onclick')
-  if (link != undefined) {
-    link = link.split(`'`)[1]
-  }
-  return link
-}
-
-function extractYearInMasterLine($line) {
-  return $line
-    .find('td')
-    .eq(0)
-    .text()
-}
-
-function scrapeLine($line, masterBillLink, urlPrefix, model, baseUrl) {
-  let amountCol, dateCol
-  if (model == 3) {
-    amountCol = 2
-    dateCol = 0
-  } else if (model == 5) {
-    amountCol = 3
-    dateCol = 1
-  }
-  const amount = $line
-    .find('td')
-    .eq(amountCol)
-    .text()
-  const dateMatch = $line
-    .find('td')
-    .eq(dateCol)
-    .text()
-    .match(/\d{2}\/\d{2}\/\d{4}/) //[0]
-  if (dateMatch) {
-    return {
-      vendor: 'impot',
-      amount: parseFloat(amount.match(/\d+/g).join('')),
-      currency: 'EUR',
-      date: moment(dateMatch[0], 'DD-MM-YYYY').toDate(),
-      fileurl: masterBillLink
-        ? `${baseUrl}/${urlPrefix}/${masterBillLink}`
-        : undefined
+function extractBills($) {
+  let bills = []
+  let currentYear = undefined
+  let currentType = undefined
+  for (const tr of Array.from(
+    $('table[class="cssFondTableENSU"] > tbody > tr')
+  )) {
+    if ($(tr).has('td[class="cssFondAnneeENSU"]').length > 0) {
+      // It's a year line
+      currentYear = $(tr)
+        .find('td')
+        .html()
+    } else if ($(tr).has('td[class="cssLigneImpotENSU"]').length > 0) {
+      // It's a type line
+      currentType = $(tr)
+        .find('span[class="cssImpotENSU"]')
+        .html()
+    } else if ($(tr).has('table[class="cssTableInternetENSU"]')) {
+      // It's a line with a table 'details'
+      bills = bills.concat(extractDetails($, tr, currentYear, currentType))
     }
-  } else {
-    //No date, we wait for the date of payment to appear next time
-    log('info', 'Line with no date detected, no bill made')
-    return undefined
   }
+  return bills
 }
 
-function scrapeRefundLine($line, masterBillLink, urlPrefix, year, baseUrl) {
-  const amountLine = $line.find('td').text()
-  return {
-    vendor: 'impot',
-    amount: parseFloat(amountLine.match(/\d+/g).join('')),
-    isRefund: true,
-    currency: 'EUR',
-    date: moment(`01/07/${year}`, 'DD-MM-YYYY').toDate(),
-    fileurl: masterBillLink
-      ? `${baseUrl}/${urlPrefix}/${masterBillLink}`
-      : undefined
+function extractDetails($, trMain, year, type) {
+  let bills = []
+  for (const tr of Array.from($(trMain).find('tr'))) {
+    // if has 3 cell and third cell contains €, it's a bill line
+    if (
+      $(tr).find('td').length === 3 &&
+      $(tr)
+        .find('td')
+        .eq(2)
+        .html()
+        .includes('&#x20AC')
+    ) {
+      const date = parseDate(
+        $(tr)
+          .find('td')
+          .eq(0)
+          .html()
+      )
+      const amount = parseAmount(
+        $(tr)
+          .find('td')
+          .eq(2)
+          .html()
+      )
+      bills.push({
+        year,
+        type,
+        date,
+        amount,
+        currency: 'EUR'
+      })
+    }
   }
+  return bills
+}
+
+function parseAmount(string) {
+  return parseInt(
+    string
+      .replace('&#xA0;&#x20AC;', '') // Remove end of line (nbsp+€)
+      .replace(/&#xFFFD;/g, '') //Separator between 3 digits groups
+  )
+}
+
+function parseDate(string) {
+  const match = string.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+  return `${match[3]}-${match[2]}-${match[1]}`
 }

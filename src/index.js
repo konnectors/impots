@@ -25,9 +25,8 @@ const moment = require('moment')
 moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
-const normalizeFileNames = require('./fileNamer')
 const appendMetadata = require('./metadata')
-const parseBills = require('./bills')
+const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
 
@@ -42,47 +41,31 @@ function shouldReplaceFile(file) {
 
 async function start(fields) {
   await login(fields)
-  const oldFiles = await getOldFiles(fields.folderPath) // eslint-disable-line
+  let ShouldRemoveOldFiles = false
+  let newDocuments
   try {
-    let newDocuments = await getDocuments()
+    newDocuments = await getDocuments()
     newDocuments = appendMetadata(newDocuments)
-
-    await saveFiles(newDocuments, fields, {
-      sourceAccount: this._account._id,
-      sourceAccountIdentifier: fields.login,
-      contentType: 'application/pdf'
-    })
+    ShouldRemoveOldFiles = true
   } catch (e) {
     log('warn', 'Error during new documents collection')
     log('warn', e)
   }
 
-  const [documents, bills] = await fetch()
-  await saveFiles(documents, fields, {
+  await getBills(fields.login)
+  await saveFiles(newDocuments, fields, {
     sourceAccount: this._account._id,
     sourceAccountIdentifier: fields.login,
-    contentType: 'application/pdf',
-    shouldReplaceFile
+    contentType: 'application/pdf'
   })
-  await saveBills(bills, fields, {
-    identifiers: [
-      'impot',
-      'impots',
-      'dgfip',
-      'd.g.f.i.p',
-      'ddfip',
-      'd.d.f.i.p',
-      'drfip',
-      'd.r.f.i.p',
-      'tresor public',
-      'finances pub',
-      'finances publiques'
-    ],
-    sourceAccount: this._account._id,
-    sourceAccountIdentifier: fields.login,
-    contentType: 'application/pdf',
-    shouldReplaceFile
-  })
+
+  if (ShouldRemoveOldFiles) {
+    const oldFilesToRemove = await getOldFiles(fields.folderPath)
+    if (oldFilesToRemove) {
+      await deleteOldFiles(oldFilesToRemove)
+    }
+  }
+
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity()
@@ -147,10 +130,25 @@ async function login(fields) {
 }
 
 async function getOldFiles(folderPath) {
+  log('info', 'Getting list of old files')
   const dir = await cozyClient.files.statByPath(folderPath)
-  console.log(dir)
   const files = await utils.queryAll('io.cozy.files', { dir_id: dir._id })
-  return files
+  const oldFiles = files.filter(file => {
+    return file.metadata.oldSiteMetadata
+  })
+  const oldFilesToRemove = oldFiles.filter(file => {
+    if (file.name.match(/^201\d-/) || file.name.match(/^2009/)) {
+      return true
+    }
+  })
+  return oldFilesToRemove
+}
+
+async function deleteOldFiles(files) {
+  log('info', 'Deleting old files')
+  for (const file of files) {
+    cozyClient.files.trashById(file._id)
+  }
 }
 
 async function getDocuments() {
@@ -206,78 +204,6 @@ async function getDocuments() {
     docs = docs.concat(tmpDocs)
   }
   return docs
-}
-
-async function fetch() {
-  /* Mandatory: Fetch details before documents, because pdf access is selective.
-     Hopefully, 'details' pdfs are included in 'all documents' pdfs.
-  */
-  let { urlPrefix, token } = await fetchMenu()
-
-  let $ = await getMyDetailAccountPage(urlPrefix, token)
-  const bills = parseBills($, urlPrefix, baseUrl)
-
-  $ = await getMyDocumentsPage(urlPrefix, token)
-  const documents = parseMyDocuments($, urlPrefix)
-
-  const documentsFetched = await prefetchUrls(documents)
-  const billsFetched = await prefetchUrls(bills)
-
-  return [
-    normalizeFileNames(documentsFetched),
-    normalizeFileNames(billsFetched)
-  ]
-}
-
-async function fetchMenu() {
-  let $ = await request(`${baseUrl}/acces-usager/cfs`)
-  const documentsLink = $('img[name=doc]')
-    .closest('a')
-    .attr('href')
-  const urlPrefix = documentsLink.split('/')[1] // gets "cesu-XX" or "cfsu-XX" from the url
-  if (urlPrefix == undefined) {
-    log('error', 'No url prefix defined, unable to continue')
-    throw new Error(errors.VENDOR_DOWN)
-  }
-  $ = await request(`${baseUrl}${documentsLink}`)
-  const $form = $('form[name=documentsForm]')
-  const token = $form.find('input[name=CSRFTOKEN]').val()
-  return { urlPrefix, token }
-}
-
-async function getMyDocumentsPage(urlPrefix, token) {
-  log('info', 'Fetching the documents page')
-
-  const $ = await request({
-    method: 'POST',
-    uri: `${baseUrl}/${urlPrefix}/documents.html`,
-    form: {
-      annee: 'all',
-      CSRFTOKEN: token,
-      method: 'rechercheDocuments',
-      typeDocument: 'toutDocument',
-      typeImpot: 'toutImpot'
-    }
-  })
-  return $
-}
-
-async function getMyDetailAccountPage(urlPrefix, token) {
-  log('info', 'Fetching the MyDetailAccount page')
-  const $ = await request({
-    method: 'POST',
-    uri: `${baseUrl}/${urlPrefix}/compteRedirection.html`,
-    form: {
-      annee: 'all',
-      CSRFTOKEN: token,
-      method: 'redirection',
-      date: 'gardeDate',
-      typeImpot: 'toutImpot',
-      tresorerieCodee: 'toutesTresoreries',
-      compte: 'compteDetaille'
-    }
-  })
-  return $
 }
 
 async function fetchIdentity() {
@@ -400,54 +326,4 @@ function formatPhone(phone) {
   } else {
     return phone
   }
-}
-
-function parseMyDocuments($, urlPrefix) {
-  log('info', 'Now parsing the documents links')
-  const documents = scrape(
-    $,
-    {
-      fileurl: {
-        attr: 'onclick',
-        parse: onclick => {
-          const viewerUrl = onclick
-            .match(/\((.*)\)/)[1]
-            .split(',')[0]
-            .slice(1, -1)
-          return `${baseUrl}/${urlPrefix}/${viewerUrl}`
-        }
-      },
-      name: {
-        fn: link => {
-          return $(link)
-            .closest('tr')
-            .text()
-        }
-      }
-    },
-    '.cssLienTable'
-  )
-
-  log('info', `Found ${documents.length} documents to download`)
-
-  return documents
-}
-
-async function prefetchUrls(documents) {
-  const result = []
-  for (let doc of documents) {
-    if (doc.fileurl == undefined) {
-      log('debug', 'No url provided, delete attribute')
-      delete doc.fileurl
-      result.push(doc)
-    } else {
-      log('debug', `Prefetching url for ${doc.fileurl}`)
-      const $ = await request(doc.fileurl)
-      result.push({
-        ...doc,
-        fileurl: `${baseUrl}${$('iframe').attr('src')}`
-      })
-    }
-  }
-  return result
 }
