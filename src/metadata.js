@@ -1,7 +1,14 @@
 const { log } = require('cozy-konnector-libs')
 const moment = require('moment')
 
-module.exports = appendMetadata
+module.exports = {
+  appendMetadata,
+  evalSubject,
+  evalClassification,
+  evalDate,
+  evalSubClassification,
+  formatPhone
+}
 
 function appendMetadata(docs) {
   for (let doc of docs) {
@@ -92,5 +99,17 @@ function evalSubClassification(label) {
     return 'main_notice'
   } else {
     return undefined
+  }
+}
+
+/* The website let the user do mistake with or without a leading 0 at french number
+ *  We remove it if we detect a french prefix (+33) and a leading 0
+ */
+function formatPhone(phone) {
+  if (phone.match(/^\+33 0/)) {
+    log('debug', 'French phone found with leading 0, removing')
+    return phone.replace('+33 0', '+33 ')
+  } else {
+    return phone
   }
 }

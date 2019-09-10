@@ -7,7 +7,6 @@ const {
   requestFactory,
   log,
   scrape,
-  saveFiles,
   errors,
   cozyClient,
   utils
@@ -23,38 +22,32 @@ const moment = require('moment')
 moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
-const appendMetadata = require('./metadata')
+const { appendMetadata, formatPhone } = require('./metadata')
 const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
+const REMOVE_OLD_FILES_FLAG = false
 
 module.exports = new BaseKonnector(start)
 
 async function start(fields) {
   await login(fields)
-  let ShouldRemoveOldFiles = false
   let newDocuments
   try {
     newDocuments = await getDocuments()
     newDocuments = appendMetadata(newDocuments)
-    ShouldRemoveOldFiles = true
   } catch (e) {
     log('warn', 'Error during new documents collection')
-    log('warn', e)
+    log('warn', e.message)
   }
 
   await getBills(fields.login)
-  await saveFiles(newDocuments, fields, {
-    sourceAccount: this._account._id,
-    sourceAccountIdentifier: fields.login,
+  await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf'
   })
 
-  if (ShouldRemoveOldFiles) {
-    const oldFilesToRemove = await getOldFiles(fields.folderPath)
-    if (oldFilesToRemove) {
-      await deleteOldFiles(oldFilesToRemove)
-    }
+  if (REMOVE_OLD_FILES_FLAG) {
+    await deleteOldFiles(fields.folderPath)
   }
 
   try {
@@ -123,19 +116,13 @@ async function login(fields) {
 async function getOldFiles(folderPath) {
   log('info', 'Getting list of old files')
   const dir = await cozyClient.files.statByPath(folderPath)
-  const files = await utils.queryAll('io.cozy.files', { dir_id: dir._id })
-  const oldFiles = files.filter(file => {
-    return file.metadata.oldSiteMetadata
-  })
-  const oldFilesToRemove = oldFiles.filter(file => {
-    if (file.name.match(/^201\d-/) || file.name.match(/^2009/)) {
-      return true
-    }
-  })
-  return oldFilesToRemove
+  return (await utils.queryAll('io.cozy.files', { dir_id: dir._id }))
+    .filter(file => file.metadata.oldSiteMetadata)
+    .filter(file => file.name.match(/^201\d-/) || file.name.match(/^2009/))
 }
 
-async function deleteOldFiles(files) {
+async function deleteOldFiles(folderPath) {
+  const files = getOldFiles(folderPath)
   log('info', 'Deleting old files')
   for (const file of files) {
     await cozyClient.files.trashById(file._id)
@@ -172,7 +159,7 @@ async function getDocuments() {
             .find('input')
             .attr('value')
           let filename = `${year}-${label}.pdf`
-          // Replace / and : found in some label
+          // Replace / and : found in some labels
           // 1) in date (01/01/2018 -> 01-01-2018)
           filename = filename.replace(/\//g, '-')
           // 2) in complementrary form
@@ -198,7 +185,7 @@ async function getDocuments() {
 }
 
 async function fetchIdentity() {
-  // Prefetch mandatory if we want maritalStatus
+  // Prefetch is mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
@@ -235,7 +222,7 @@ async function fetchIdentity() {
     { key: '.labelInfo', value: '.inputInfo' },
     '.infoPersonnelle > ul > li'
   )
-  // datas extractible here :
+  // extractible datas :
   // {
   //    'Prénom': 'PRENOM',
   //    Nom: 'NOM',
@@ -305,16 +292,4 @@ async function fetchIdentity() {
     }
   }
   return result
-}
-
-/* The website let the user to mistake with or without a leading 0 at french number
- *  We remove it if we detect a french prefix (+33) and a leading 0
- */
-function formatPhone(phone) {
-  if (phone.match(/^\+33 0/)) {
-    log('debug', 'French phone found with leading 0, removing')
-    return phone.replace('+33 0', '+33 ')
-  } else {
-    return phone
-  }
 }
