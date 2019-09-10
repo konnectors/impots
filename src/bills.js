@@ -1,4 +1,4 @@
-const { requestFactory, log } = require('cozy-konnector-libs')
+const { requestFactory } = require('cozy-konnector-libs')
 const request = requestFactory({
   //debug: true,
   cheerio: true,
@@ -11,7 +11,7 @@ const requestNoCheerio = requestFactory({
   json: false
 })
 
-module.exports = { getBills }
+module.exports = { getBills, extractBills, extractDetails }
 
 async function getBills(login) {
   let cfsuUrl
@@ -54,9 +54,9 @@ async function getBills(login) {
     }
   })
   const CSRFToken = $firstForm('input[name="CSRFTOKEN"]').attr('value')
-  log('debug', `CSRFTOKEN is ${CSRFToken}`)
+  // log('debug', `CSRFTOKEN is ${CSRFToken}`)
   const formLink = $firstForm('form[name="compteENSUForm"]').attr('action')
-  log('debug', `Form Url is ${formLink}`)
+  // log('debug', `Form Url is ${formLink}`)
   const $fullForm = await request({
     url: `https://cfspart.impots.gouv.fr${formLink}`,
     method: 'POST',
@@ -80,22 +80,31 @@ function extractBills($) {
   for (const tr of Array.from(
     $('table[class="cssFondTableENSU"] > tbody > tr')
   )) {
-    if ($(tr).has('td[class="cssFondAnneeENSU"]').length > 0) {
-      // It's a year line
+    if (isYearLine($, tr)) {
       currentYear = $(tr)
         .find('td')
         .html()
-    } else if ($(tr).has('td[class="cssLigneImpotENSU"]').length > 0) {
-      // It's a type line
+    } else if (isTypeLine($, tr)) {
       currentType = $(tr)
-        .find('span[class="cssImpotENSU"]')
+        .find('span.cssImpotENSU')
         .html()
-    } else if ($(tr).has('table[class="cssTableInternetENSU"]')) {
-      // It's a line with a table 'details'
+    } else if (isDetailsLine($, tr)) {
       bills = bills.concat(extractDetails($, tr, currentYear, currentType))
     }
   }
   return bills
+}
+
+function isDetailsLine($, tr) {
+  return $(tr).find('td .cssTableInterneENSU').length
+}
+
+function isYearLine($, tr) {
+  return $(tr).find('td.cssFondAnneeENSU').length
+}
+
+function isTypeLine($, tr) {
+  return $(tr).find('td.cssLigneImpotENSU').length
 }
 
 function extractDetails($, trMain, year, type) {
