@@ -8,13 +8,11 @@ const {
   log,
   scrape,
   saveFiles,
-  saveBills,
   errors,
   cozyClient,
   utils
 } = require('cozy-konnector-libs')
 
-const get = require('lodash/get')
 const request = requestFactory({
   // debug: true,
   cheerio: true,
@@ -31,13 +29,6 @@ const { getBills } = require('./bills')
 const baseUrl = 'https://cfspart.impots.gouv.fr'
 
 module.exports = new BaseKonnector(start)
-
-function shouldReplaceFile(file) {
-  return (
-    !get(file, 'attributes.metadata.oldSiteMetadata') &&
-    !get(file, 'metadata.oldSiteMetadata')
-  )
-}
 
 async function start(fields) {
   await login(fields)
@@ -147,7 +138,7 @@ async function getOldFiles(folderPath) {
 async function deleteOldFiles(files) {
   log('info', 'Deleting old files')
   for (const file of files) {
-    cozyClient.files.trashById(file._id)
+    await cozyClient.files.trashById(file._id)
   }
 }
 

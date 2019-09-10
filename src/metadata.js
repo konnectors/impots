@@ -33,7 +33,6 @@ function appendMetadata(docs) {
     delete doc.idEnsua
     delete doc.label
     doc.fileAttributes = { metadata }
-    console.log(doc)
   }
   return docs
 }
@@ -66,7 +65,6 @@ function evalClassification(label) {
 
 // Try to evaluate a date from label, then apply preconstruct date to 'Avis' or return false
 function evalDate(label, classification, subjects, year) {
-  console.log(label)
   if (label.match(/\(.*\)$/)) {
     const date = label.match(/(\d{1,2})\/(\d{2})\/(\d{4})/)
     const time = label.match(/(\d{1,2}):(\d{2})/)
