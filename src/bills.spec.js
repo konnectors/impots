@@ -1,6 +1,7 @@
 const cheerio = require('cheerio')
-const { extractDetails } = require('./bills')
-
+const { extractDetails, parseType, extractBills } = require('./bills')
+const fs = require('fs')
+const path = require('path')
 describe('Bills', () => {
   describe('extractDetails', () => {
     it('should extract a nominal bill', () => {
@@ -37,6 +38,48 @@ describe('Bills', () => {
           type: 'thetype',
           date: '2019-08-16',
           amount: 19,
+          currency: 'EUR'
+        }
+      ])
+    })
+  })
+
+  describe('parseType', () => {
+    it('should parse income bills labels', () => {
+      expect(parseType('Imp�t 2018 sur les revenus de 2017')).toEqual('income')
+      expect(parseType('Imp�t 2012 sur les revenus de 2011')).toEqual('income')
+    })
+
+    it('should parse residence bills labels', () => {
+      expect(parseType(`Taxe d'habitation`)).toEqual('residence')
+    })
+
+    it('should parse property bills labels', () => {
+      expect(parseType(`Taxes fonci�res`)).toEqual('property')
+    })
+
+    it('should refuse unknown bills type labels', () => {
+      expect(parseType(`test unknown type`)).toBe(false)
+    })
+  })
+
+  describe('extractBills', () => {
+    it('work in nominal general case', () => {
+      const html = fs.readFileSync(path.join(__dirname, 'test.html'))
+      const $ = cheerio.load(html)
+      expect(extractBills($)).toEqual([
+        {
+          year: '2019',
+          type: 'residence',
+          date: '2019-08-16',
+          amount: 116,
+          currency: 'EUR'
+        },
+        {
+          year: '2019',
+          type: 'property',
+          date: '2019-08-16',
+          amount: 105,
           currency: 'EUR'
         }
       ])

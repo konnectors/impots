@@ -1,4 +1,4 @@
-const { requestFactory } = require('cozy-konnector-libs')
+const { requestFactory, log } = require('cozy-konnector-libs')
 const request = requestFactory({
   //debug: true,
   cheerio: true,
@@ -11,7 +11,7 @@ const requestNoCheerio = requestFactory({
   json: false
 })
 
-module.exports = { getBills, extractBills, extractDetails }
+module.exports = { getBills, extractBills, extractDetails, parseType }
 
 async function getBills(login) {
   let cfsuUrl
@@ -77,18 +77,20 @@ function extractBills($) {
   let bills = []
   let currentYear = undefined
   let currentType = undefined
-  for (const tr of Array.from(
-    $('table[class="cssFondTableENSU"] > tbody > tr')
-  )) {
+  for (const tr of Array.from($('table.cssFondTableENSU > tbody > tr'))) {
     if (isYearLine($, tr)) {
       currentYear = $(tr)
         .find('td')
-        .html()
+        .text()
+        .trim()
     } else if (isTypeLine($, tr)) {
-      currentType = $(tr)
-        .find('span.cssImpotENSU')
-        .html()
-    } else if (isDetailsLine($, tr)) {
+      currentType = parseType(
+        $(tr)
+          .find('span.cssImpotENSU')
+          .text()
+          .trim()
+      )
+    } else if (isDetailsLine($, tr) && currentType) {
       bills = bills.concat(extractDetails($, tr, currentYear, currentType))
     }
   }
@@ -146,12 +148,30 @@ function extractDetails($, trMain, year, type) {
 function parseAmount(string) {
   return parseInt(
     string
+      .trim()
       .replace('&#xA0;&#x20AC;', '') // Remove end of line (nbsp+€)
       .replace(/&#xFFFD;/g, '') //Separator between 3 digits groups
   )
 }
 
 function parseDate(string) {
-  const match = string.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+  const match = string.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/)
   return `${match[3]}-${match[2]}-${match[1]}`
+}
+
+function parseType(strType) {
+  const matchers = {
+    income: /^Imp�t .* sur les revenus de .*$/,
+    residence: /^Taxe d'habitation$/,
+    property: /^Taxes fonci�res$/
+  }
+
+  for (const subject in matchers) {
+    if (strType.trim().match(matchers[subject])) {
+      return subject
+    }
+  }
+
+  log('warn', `unknown bill type ${strType}`)
+  return false
 }
