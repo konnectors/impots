@@ -7,12 +7,11 @@ const {
   requestFactory,
   log,
   scrape,
-  saveFiles,
-  saveBills,
-  errors
+  errors,
+  cozyClient,
+  utils
 } = require('cozy-konnector-libs')
 
-const get = require('lodash/get')
 const request = requestFactory({
   // debug: true,
   cheerio: true,
@@ -23,55 +22,49 @@ const moment = require('moment')
 moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
-const normalizeFileNames = require('./fileNamer')
-const parseBills = require('./bills')
+const { appendMetadata, formatPhone } = require('./metadata')
+const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
+const REMOVE_OLD_FILES_FLAG = false
 
 module.exports = new BaseKonnector(start)
 
-function shouldReplaceFile(file) {
-  return (
-    !get(file, 'attributes.metadata.oldSiteMetadata') &&
-    !get(file, 'metadata.oldSiteMetadata')
-  )
-}
-
 async function start(fields) {
   await login(fields)
-  const [documents, bills] = await fetch()
-  await saveFiles(documents, fields, {
-    sourceAccount: this._account._id,
-    sourceAccountIdentifier: fields.login,
+  let newDocuments
+  try {
+    newDocuments = await getDocuments()
+    newDocuments = appendMetadata(newDocuments)
+  } catch (e) {
+    log('warn', 'Error during new documents collection')
+    log('warn', e.message)
+  }
+
+  log('info', 'saving all files')
+  await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf',
-    shouldReplaceFile
+    fileIdAttributes: ['idEnsua']
   })
-  await saveBills(bills, fields, {
-    identifiers: [
-      'impot',
-      'impots',
-      'dgfip',
-      'd.g.f.i.p',
-      'ddfip',
-      'd.d.f.i.p',
-      'drfip',
-      'd.r.f.i.p',
-      'tresor public',
-      'finances pub',
-      'finances publiques'
-    ],
-    sourceAccount: this._account._id,
-    sourceAccountIdentifier: fields.login,
+  const bills = await getBills(fields.login, newDocuments)
+  log('info', 'saving all bills')
+  await this.saveBills(bills, fields, {
     contentType: 'application/pdf',
-    shouldReplaceFile
+    fileIdAttributes: ['idEnsua'],
+    linkBankOperations: false
   })
+
+  if (REMOVE_OLD_FILES_FLAG) {
+    await deleteOldFiles(fields.folderPath)
+  }
+
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity()
     await this.saveIdentity(ident, fields.login)
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
-    log('warn', e)
+    log('warn', e.message)
   }
 }
 
@@ -128,7 +121,23 @@ async function login(fields) {
   }
 }
 
-async function getDocuments() { // eslint-disable-line
+async function getOldFiles(folderPath) {
+  log('info', 'Getting list of old files')
+  const dir = await cozyClient.files.statByPath(folderPath)
+  return (await utils.queryAll('io.cozy.files', { dir_id: dir._id }))
+    .filter(file => file.metadata.oldSiteMetadata)
+    .filter(file => file.name.match(/^201\d-/) || file.name.match(/^2009/))
+}
+
+async function deleteOldFiles(folderPath) {
+  const files = getOldFiles(folderPath)
+  log('info', 'Deleting old files')
+  for (const file of files) {
+    await cozyClient.files.trashById(file._id)
+  }
+}
+
+async function getDocuments() {
   log('info', 'Getting documents on new interface')
   let docs = []
   const $ = await request(`${baseUrl}/enp/ensu/documents.do?n=0`)
@@ -157,11 +166,20 @@ async function getDocuments() { // eslint-disable-line
           const idEnsua = $year(el)
             .find('input')
             .attr('value')
+          let filename = `${year}-${label}.pdf`
+          // Replace / and : found in some labels
+          // 1) in date (01/01/2018 -> 01-01-2018)
+          filename = filename.replace(/\//g, '-')
+          // 2) in complementrary form
+          filename = filename.replace(' : ', ' - ') // eslint-disable-line
+          filename = filename.replace(' : ', ' - ')
+          // 3) replace time (19:26 -> 19h26)
+          filename = filename.replace(':', 'h')
           return {
             year,
             label,
             idEnsua,
-            filename: `${label}.pdf`,
+            filename,
             fileurl:
               `https://cfspart.impots.gouv.fr/enp/ensu/Affichage_Document_PDF` +
               `?idEnsua=${idEnsua}`
@@ -174,80 +192,8 @@ async function getDocuments() { // eslint-disable-line
   return docs
 }
 
-async function fetch() {
-  /* Mandatory: Fetch details before documents, because pdf access is selective.
-     Hopefully, 'details' pdfs are included in 'all documents' pdfs.
-  */
-  let { urlPrefix, token } = await fetchMenu()
-
-  let $ = await getMyDetailAccountPage(urlPrefix, token)
-  const bills = parseBills($, urlPrefix, baseUrl)
-
-  $ = await getMyDocumentsPage(urlPrefix, token)
-  const documents = parseMyDocuments($, urlPrefix)
-
-  const documentsFetched = await prefetchUrls(documents)
-  const billsFetched = await prefetchUrls(bills)
-
-  return [
-    normalizeFileNames(documentsFetched),
-    normalizeFileNames(billsFetched)
-  ]
-}
-
-async function fetchMenu() {
-  let $ = await request(`${baseUrl}/acces-usager/cfs`)
-  const documentsLink = $('img[name=doc]')
-    .closest('a')
-    .attr('href')
-  const urlPrefix = documentsLink.split('/')[1] // gets "cesu-XX" or "cfsu-XX" from the url
-  if (urlPrefix == undefined) {
-    log('error', 'No url prefix defined, unable to continue')
-    throw new Error(errors.VENDOR_DOWN)
-  }
-  $ = await request(`${baseUrl}${documentsLink}`)
-  const $form = $('form[name=documentsForm]')
-  const token = $form.find('input[name=CSRFTOKEN]').val()
-  return { urlPrefix, token }
-}
-
-async function getMyDocumentsPage(urlPrefix, token) {
-  log('info', 'Fetching the documents page')
-
-  const $ = await request({
-    method: 'POST',
-    uri: `${baseUrl}/${urlPrefix}/documents.html`,
-    form: {
-      annee: 'all',
-      CSRFTOKEN: token,
-      method: 'rechercheDocuments',
-      typeDocument: 'toutDocument',
-      typeImpot: 'toutImpot'
-    }
-  })
-  return $
-}
-
-async function getMyDetailAccountPage(urlPrefix, token) {
-  log('info', 'Fetching the MyDetailAccount page')
-  const $ = await request({
-    method: 'POST',
-    uri: `${baseUrl}/${urlPrefix}/compteRedirection.html`,
-    form: {
-      annee: 'all',
-      CSRFTOKEN: token,
-      method: 'redirection',
-      date: 'gardeDate',
-      typeImpot: 'toutImpot',
-      tresorerieCodee: 'toutesTresoreries',
-      compte: 'compteDetaille'
-    }
-  })
-  return $
-}
-
 async function fetchIdentity() {
-  // Prefetch mandatory if we want maritalStatus
+  // Prefetch is mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
@@ -284,7 +230,7 @@ async function fetchIdentity() {
     { key: '.labelInfo', value: '.inputInfo' },
     '.infoPersonnelle > ul > li'
   )
-  // datas extractible here :
+  // extractible datas :
   // {
   //    'Prénom': 'PRENOM',
   //    Nom: 'NOM',
@@ -351,68 +297,6 @@ async function fetchIdentity() {
           result.phone = [{ type: 'home', number: formatPhone(info.value) }]
         }
       }
-    }
-  }
-  return result
-}
-
-/* The website let the user to mistake with or without a leading 0 at french number
- *  We remove it if we detect a french prefix (+33) and a leading 0
- */
-function formatPhone(phone) {
-  if (phone.match(/^\+33 0/)) {
-    log('debug', 'French phone found with leading 0, removing')
-    return phone.replace('+33 0', '+33 ')
-  } else {
-    return phone
-  }
-}
-
-function parseMyDocuments($, urlPrefix) {
-  log('info', 'Now parsing the documents links')
-  const documents = scrape(
-    $,
-    {
-      fileurl: {
-        attr: 'onclick',
-        parse: onclick => {
-          const viewerUrl = onclick
-            .match(/\((.*)\)/)[1]
-            .split(',')[0]
-            .slice(1, -1)
-          return `${baseUrl}/${urlPrefix}/${viewerUrl}`
-        }
-      },
-      name: {
-        fn: link => {
-          return $(link)
-            .closest('tr')
-            .text()
-        }
-      }
-    },
-    '.cssLienTable'
-  )
-
-  log('info', `Found ${documents.length} documents to download`)
-
-  return documents
-}
-
-async function prefetchUrls(documents) {
-  const result = []
-  for (let doc of documents) {
-    if (doc.fileurl == undefined) {
-      log('debug', 'No url provided, delete attribute')
-      delete doc.fileurl
-      result.push(doc)
-    } else {
-      log('debug', `Prefetching url for ${doc.fileurl}`)
-      const $ = await request(doc.fileurl)
-      result.push({
-        ...doc,
-        fileurl: `${baseUrl}${$('iframe').attr('src')}`
-      })
     }
   }
   return result
