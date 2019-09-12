@@ -1,0 +1,109 @@
+{
+  "version": "1.9.0",
+  "name": "Impots.gouv.fr",
+  "type": "konnector",
+  "language": "node",
+  "icon": "impots.gouv.svg",
+  "slug": "impots",
+  "source": "git@github.com:konnectors/impots.git",
+  "editor": "Cozy",
+  "vendor_link": "https://cfspart.impots.gouv.fr/LoginMDP",
+  "categories": [
+    "public_service"
+  ],
+  "fields": {
+    "login": {
+      "type": "text",
+      "min": 13,
+      "max": 13
+    },
+    "password": {
+      "type": "password"
+    },
+    "advancedFields": {
+      "folderPath": {
+        "advanced": true,
+        "isRequired": false
+      }
+    }
+  },
+  "data_types": [
+    "document",
+    "bill"
+  ],
+  "permissions": {
+    "bank operations": {
+      "type": "io.cozy.bank.operations"
+    },
+    "bills": {
+      "type": "io.cozy.bills"
+    },
+    "files": {
+      "type": "io.cozy.files"
+    },
+    "accounts": {
+      "type": "io.cozy.accounts",
+      "verbs": [
+        "GET"
+      ]
+    },
+    "identities": {
+      "type": "io.cozy.identities"
+    }
+  },
+  "developer": {
+    "name": "Cozy Cloud",
+    "url": "https://cozy.io"
+  },
+  "langs": [
+    "fr",
+    "en"
+  ],
+  "locales": {
+    "fr": {
+      "short_description": "Récupère tous les documents relatifs à vos impôts et taxes",
+      "long_description": "Sur votre espace particulier, ce connecteur récupère tous les documents relatifs à vos impôts et taxes :\n- Avis d'impôt sur le revenu\n- Avis primitif\n- Accusé de réception de votre déclaration de revenu\n- Avis de Situation Déclarative à l'Impôt sur le Revenu (ASDIR)\n- Avis de taxe d'habitation\n- Formulaires 2041/2042/2044\n- Échéancier\n\n&nbsp;\n\n*A noter* : Ce connecteur ne fonctionne pas pour l'espace professionnel.",
+      "permissions": {
+        "files": {
+          "description": "Utilisé pour sauvegarder les documents fichiers"
+        },
+        "accounts": {
+          "description": "Utilisé pour obtenir les données du compte"
+        },
+        "identities": {
+          "description": "Utilise pour sauvegarder votre identité"
+        }
+      },
+      "fields": {
+        "login": {
+          "label": "Numéro fiscal",
+          "placeholder": "13 chiffres"
+        }
+      }
+    },
+    "en": {
+      "short_description": "Fetch all documents related to your taxes",
+      "long_description": "On your personal account, this connector fetches all documents related to your taxes :\n- Income tax notice (Avis d'impôt sur le revenu)\n- Original notice (Avis primitif)\n- Acknowledgement of receipt of your tax return (Accusé de réception de votre déclaration de revenus)\n- Declarative statement notice on income tax (ASDIR)\n- Housing tax notice (Avis de taxe d’habitation)\n- Forms 2041/2042/2044\n- Payment schedule\n\n&nbsp;\n\n*Note* : This connector does not work with a professional account.",
+      "permissions": {
+        "files": {
+          "description": "Required to save the file documents"
+        },
+        "accounts": {
+          "description": "Required to get the account's data"
+        },
+        "identities": {
+          "description": "Required to save your identity"
+        }
+      },
+      "fields": {
+        "login": {
+          "label": "Tax number",
+          "placeholder": "13 digits"
+        }
+      }
+    }
+  },
+  "banksTransactionRegExp":
+  "(impot|impots|dgfip|d\\.g\\.f\\.i\\.p|ddfip|d\\.d\\.f\\.i\\.p|drfip|d\\.r\\.f\\.i\\.p|tresor public|finances pub|finances publiques|direction generale des finances)",
+  "manifest_version": "2"
+}
