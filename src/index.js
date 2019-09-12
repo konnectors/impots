@@ -41,9 +41,17 @@ async function start(fields) {
     log('warn', e.message)
   }
 
-  await getBills(fields.login)
+  log('info', 'saving all files')
   await this.saveFiles(newDocuments, fields, {
-    contentType: 'application/pdf'
+    contentType: 'application/pdf',
+    fileIdAttributes: ['idEnsua']
+  })
+  const bills = await getBills(fields.login, newDocuments)
+  log('info', 'saving all bills')
+  await this.saveBills(bills, fields, {
+    contentType: 'application/pdf',
+    fileIdAttributes: ['idEnsua'],
+    linkBankOperations: false
   })
 
   if (REMOVE_OLD_FILES_FLAG) {
@@ -56,7 +64,7 @@ async function start(fields) {
     await this.saveIdentity(ident, fields.login)
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
-    log('warn', e)
+    log('warn', e.message)
   }
 }
 

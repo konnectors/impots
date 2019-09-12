@@ -73,14 +73,16 @@ describe('Bills', () => {
           type: 'residence',
           date: '2019-08-16',
           amount: 116,
-          currency: 'EUR'
+          currency: 'EUR',
+          address: '2 rue du moulin,VILLE (00)'
         },
         {
           year: '2019',
           type: 'property',
           date: '2019-08-16',
           amount: 105,
-          currency: 'EUR'
+          currency: 'EUR',
+          address: '2 rue du moulin,VILLE2 (00)'
         }
       ])
     })

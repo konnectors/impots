@@ -22,6 +22,11 @@ function appendMetadata(docs) {
       datetimeLabel: 'issueDate',
       originalLabel: doc.label
     }
+
+    const proposedAddress = doc.label.includes(' - ')
+      ? doc.label.split(' - ').pop()
+      : false
+    if (proposedAddress) metadata.address = proposedAddress
     ;(metadata.datetime =
       evalDate(
         doc.label,
@@ -37,7 +42,6 @@ function appendMetadata(docs) {
           metadata.year
         ) || moment(`${doc.year}-01-01T12:00:00`).toDate()),
       delete doc.year
-    delete doc.idEnsua
     delete doc.label
     doc.fileAttributes = { metadata }
   }

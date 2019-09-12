@@ -1,4 +1,9 @@
 const { requestFactory, log } = require('cozy-konnector-libs')
+const get = require('lodash/get')
+const orderBy = require('lodash/orderBy')
+const round = require('lodash/round')
+const levenshtein = require('fast-levenshtein')
+// const fs = require('fs')
 const request = requestFactory({
   //debug: true,
   cheerio: true,
@@ -13,8 +18,9 @@ const requestNoCheerio = requestFactory({
 
 module.exports = { getBills, extractBills, extractDetails, parseType }
 
-async function getBills(login) {
+async function getBills(login, entries) {
   let cfsuUrl
+  log('info', 'fetching payments')
   await request({
     url: 'https://cfspart.impots.gouv.fr/enp/ensu/interpaiements.do'
   })
@@ -69,14 +75,109 @@ async function getBills(login) {
       compte: 'compteDetaille'
     }
   })
-  const bills = extractBills($fullForm)
+  log('info', 'Reconciliation of bills with files...')
+  const bills = ReconcilIiateBillsWithFiles(extractBills($fullForm), entries)
+
   return bills
+}
+
+function ReconcilIiateBillsWithFiles(bills, entries) {
+  const matchedBills = []
+  const notMatchedBills = []
+  const entriesIndex = entries
+    .filter(
+      entry =>
+        get(entry, 'fileAttributes.metadata.classification') === 'tax_notice'
+    )
+    .reduce((memo, entry) => {
+      const subjects = get(entry, 'fileAttributes.metadata.subjects', [])
+      for (const subject of subjects) {
+        const year = get(entry, 'fileAttributes.metadata.year')
+        const key = `${year}-${subject}`
+        if (!memo[key]) memo[key] = []
+        memo[key].push(entry)
+      }
+      return memo
+    }, {})
+
+  for (const bill of bills) {
+    let billEntries = entriesIndex[bill.year - 1 + '-' + bill.type] || []
+    const month = new Date(bill.date).getMonth() + 1
+    if (month > 9) {
+      billEntries = billEntries.concat(
+        entriesIndex[bill.year + '-' + bill.type]
+      )
+    }
+
+    // add levenshtein from bill address to entries addresses if any
+    billEntries = billEntries.map(entry => {
+      const entryAddress = get(entry, 'fileAttributes.metadata.address')
+      if (!entryAddress || !bill.address) {
+        return entry
+      }
+      return {
+        ...entry,
+        addressDistance: levenshtein.get(bill.address, entryAddress)
+      }
+    })
+
+    billEntries = sortCandidates(billEntries)
+
+    if (billEntries.length) {
+      Object.assign(billEntries[0], {
+        amount: bill.amount,
+        date: new Date(bill.date),
+        vendor: 'impot',
+        currency: 'EUR'
+      })
+      matchedBills.push({
+        ...billEntries[0],
+        amount: bill.amount,
+        date: new Date(bill.date),
+        vendor: 'impot',
+        currency: 'EUR'
+        // candidates: billEntries
+      })
+    } else {
+      notMatchedBills.push(bill)
+    }
+  }
+
+  log(
+    'info',
+    `Bills matching to files success rate : ${round(
+      (matchedBills.length / bills.length) * 100,
+      2
+    )} %`
+  )
+  const uniqYears = [...new Set(notMatchedBills.map(bill => bill.year))]
+  log(
+    'info',
+    `${
+      notMatchedBills.length
+    } non matched bills are from years: ${uniqYears.join(', ')}`
+  )
+
+  // fs.writeFileSync('matchedBills.json', JSON.stringify(matchedBills, null, 2))
+  // fs.writeFileSync('index.json', JSON.stringify(entriesIndex, null, 2))
+  // fs.writeFileSync('notMatchedBills.json', JSON.stringify(notMatchedBills, null, 2))
+  // fs.writeFileSync('entries.json', JSON.stringify(entries, null, 2))
+  return matchedBills
+}
+
+function sortCandidates(entries) {
+  return orderBy(
+    entries,
+    ['addressDistance', 'fileAttributes.metadata.issueDate'],
+    ['asc', 'desc']
+  )
 }
 
 function extractBills($) {
   let bills = []
   let currentYear = undefined
   let currentType = undefined
+  let currentAddress = undefined
   for (const tr of Array.from($('table.cssFondTableENSU > tbody > tr'))) {
     if (isYearLine($, tr)) {
       currentYear = $(tr)
@@ -90,8 +191,15 @@ function extractBills($) {
           .text()
           .trim()
       )
+      currentAddress = parseAddress(
+        $(tr)
+          .find('> td:nth-child(2)')
+          .html()
+      )
     } else if (isDetailsLine($, tr) && currentType) {
-      bills = bills.concat(extractDetails($, tr, currentYear, currentType))
+      bills = bills.concat(
+        extractDetails($, tr, currentYear, currentType, currentAddress)
+      )
     }
   }
   return bills
@@ -109,7 +217,7 @@ function isTypeLine($, tr) {
   return $(tr).find('td.cssLigneImpotENSU').length
 }
 
-function extractDetails($, trMain, year, type) {
+function extractDetails($, trMain, year, type, address) {
   let bills = []
   for (const tr of Array.from($(trMain).find('tr'))) {
     // if has 3 cell and third cell contains €, it's a bill line
@@ -138,7 +246,8 @@ function extractDetails($, trMain, year, type) {
         type,
         date,
         amount,
-        currency: 'EUR'
+        currency: 'EUR',
+        address
       })
     }
   }
@@ -174,4 +283,13 @@ function parseType(strType) {
 
   log('warn', `unknown bill type ${strType}`)
   return false
+}
+
+function parseAddress(label) {
+  return label
+    .replace(/<br>/g, ',')
+    .split('\n')
+    .map(line => line.trim())
+    .join('')
+    .trim()
 }
