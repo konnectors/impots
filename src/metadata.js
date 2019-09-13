@@ -57,6 +57,7 @@ function evalSubject(label) {
   } else if (label.match(/foncières/)) {
     return 'property'
   } else {
+    // log('debug', label)
     log('warn', 'Impossible to evalute Subject metadata for one doc')
     return undefined
   }

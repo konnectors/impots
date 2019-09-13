@@ -18,6 +18,8 @@ const request = requestFactory({
   jar: true,
   json: false
 })
+
+const YEAR_CLEAN_LIMIT = 2017 // the files from old connector will be cleaned until this limit
 const moment = require('moment')
 moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
@@ -35,14 +37,16 @@ async function start(fields) {
   await login(fields)
   let newDocuments
   try {
-    newDocuments = await getDocuments()
+    const lastYear = await cleanOldFilesAndBills(
+      fields.folderPath,
+      YEAR_CLEAN_LIMIT
+    )
+    newDocuments = await getDocuments(lastYear)
     newDocuments = appendMetadata(newDocuments)
   } catch (e) {
     log('warn', 'Error during new documents collection')
     log('warn', e.message)
   }
-
-  await cleanOldFilesAndBills(fields.folderPath)
 
   log('info', 'saving all files')
   await this.saveFiles(newDocuments, fields, {
@@ -120,53 +124,66 @@ async function login(fields) {
   }
 }
 
-async function getOldFiles(folderPath) {
+async function getOldFiles(folderPath, limit) {
   log('info', 'Getting list of old files')
   const dir = await cozyClient.files.statByPath(folderPath)
-  return (await utils.queryAll('io.cozy.files', { dir_id: dir._id }))
+  const oldFiles = (await utils.queryAll('io.cozy.files', { dir_id: dir._id }))
     .filter(file => file && file.metadata && file.metadata.oldSiteMetadata) // file from the old connector version)
-    .filter(file =>
-      ['2019', '2018'].includes(file.metadata.datetime.substring(0, 4))
-    )
+    .map(file => ({
+      ...file,
+      year: Number(file.metadata.datetime.substring(0, 4))
+    }))
+
+  const oldFilesToRemove = oldFiles.filter(file => file.year >= limit)
+  const oldFilesRemaining = oldFiles.filter(file => file.year < limit)
+  const lastRemainingYear = oldFilesRemaining.reduce(
+    (memo, file) => (file.year > memo ? file.year : memo),
+    0
+  )
+  return { oldFilesToRemove, lastRemainingYear }
 }
 
-async function cleanOldFilesAndBills(folderPath) {
-  const files = await getOldFiles(folderPath)
-  if (files.length) {
+async function cleanOldFilesAndBills(folderPath, limit) {
+  const { oldFilesToRemove, lastRemainingYear } = await getOldFiles(
+    folderPath,
+    limit
+  )
+  if (oldFilesToRemove.length) {
     const bills = await utils.queryAll('io.cozy.bills', { vendor: 'impot' })
     const billsIndex = keyBy(bills.filter(bill => bill.invoice), bill =>
       bill.invoice.split(':').pop()
     )
-    const billsToDelete = files
+    const billsToDelete = oldFilesToRemove
       .map(file => billsIndex[file._id])
       .filter(Boolean)
     if (REMOVE_OLD_FILES_FLAG) {
       log(
         'info',
-        `Deleting ${files.length} old files and ${
+        `Deleting ${oldFilesToRemove.length} old oldFilesToRemove and ${
           billsToDelete.length
         } associated bills`
       )
-      for (const file of files) {
+      for (const file of oldFilesToRemove) {
         await cozyClient.files.trashById(file._id)
       }
       await utils.batchDelete('io.cozy.bills', billsToDelete)
     } else {
       log(
         'info',
-        `Would remove ${files.length} old files and ${
+        `Would remove ${oldFilesToRemove.length} old oldFilesToRemove and ${
           billsToDelete.length
         } associated bills`
       )
     }
   }
+  return lastRemainingYear
 }
 
-async function getDocuments() {
+async function getDocuments(lastYear) {
   log('info', 'Getting documents on new interface')
   let docs = []
   const $ = await request(`${baseUrl}/enp/ensu/documents.do?n=0`)
-  const years = Array.from(
+  let years = Array.from(
     $('.date')
       .find('a')
       .map((idx, el) => {
@@ -174,9 +191,17 @@ async function getDocuments() {
         if (year.match(/^\d{4}$/) === null) {
           throw 'Docs year scraping failed'
         }
-        return year
+        return Number(year)
       })
   )
+
+  if (lastYear) {
+    log(
+      'info',
+      `Ignoring years before ${lastYear + 1}. There are old files before`
+    )
+    years = years.filter(y => y > lastYear)
+  }
   log('debug', `Docs available for years ${years}`)
   for (const year of years) {
     const $year = await request(`${baseUrl}/enp/ensu/documents.do?n=${year}`)

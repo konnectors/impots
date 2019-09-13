@@ -103,7 +103,8 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
   for (const bill of bills) {
     let billEntries = entriesIndex[bill.year - 1 + '-' + bill.type] || []
     const month = new Date(bill.date).getMonth() + 1
-    if (month > 9) {
+    const currentYearEntries = entriesIndex[bill.year + '-' + bill.type]
+    if (month > 9 && currentYearEntries && currentYearEntries.length) {
       billEntries = billEntries.concat(
         entriesIndex[bill.year + '-' + bill.type]
       )
@@ -281,7 +282,7 @@ function parseType(strType) {
     }
   }
 
-  log('warn', `unknown bill type ${strType}`)
+  log('warn', `unknown bill type`)
   return false
 }
 
