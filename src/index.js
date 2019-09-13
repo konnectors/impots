@@ -27,6 +27,7 @@ const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
 const REMOVE_OLD_FILES_FLAG = false
+const keyBy = require('lodash/keyBy')
 
 module.exports = new BaseKonnector(start)
 
@@ -41,6 +42,8 @@ async function start(fields) {
     log('warn', e.message)
   }
 
+  await cleanOldFilesAndBills(fields.folderPath)
+
   log('info', 'saving all files')
   await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf',
@@ -53,10 +56,6 @@ async function start(fields) {
     fileIdAttributes: ['idEnsua'],
     linkBankOperations: false
   })
-
-  if (REMOVE_OLD_FILES_FLAG) {
-    await deleteOldFiles(fields.folderPath)
-  }
 
   try {
     log('info', 'Fetching identity ...')
@@ -125,15 +124,41 @@ async function getOldFiles(folderPath) {
   log('info', 'Getting list of old files')
   const dir = await cozyClient.files.statByPath(folderPath)
   return (await utils.queryAll('io.cozy.files', { dir_id: dir._id }))
-    .filter(file => file.metadata.oldSiteMetadata)
-    .filter(file => file.name.match(/^201\d-/) || file.name.match(/^2009/))
+    .filter(file => file && file.metadata && file.metadata.oldSiteMetadata) // file from the old connector version)
+    .filter(file =>
+      ['2019', '2018'].includes(file.metadata.datetime.substring(0, 4))
+    )
 }
 
-async function deleteOldFiles(folderPath) {
-  const files = getOldFiles(folderPath)
-  log('info', 'Deleting old files')
-  for (const file of files) {
-    await cozyClient.files.trashById(file._id)
+async function cleanOldFilesAndBills(folderPath) {
+  const files = await getOldFiles(folderPath)
+  if (files.length) {
+    const bills = await utils.queryAll('io.cozy.bills', { vendor: 'impot' })
+    const billsIndex = keyBy(bills.filter(bill => bill.invoice), bill =>
+      bill.invoice.split(':').pop()
+    )
+    const billsToDelete = files
+      .map(file => billsIndex[file._id])
+      .filter(Boolean)
+    if (REMOVE_OLD_FILES_FLAG) {
+      log(
+        'info',
+        `Deleting ${files.length} old files and ${
+          billsToDelete.length
+        } associated bills`
+      )
+      for (const file of files) {
+        await cozyClient.files.trashById(file._id)
+      }
+      await utils.batchDelete('io.cozy.bills', billsToDelete)
+    } else {
+      log(
+        'info',
+        `Would remove ${files.length} old files and ${
+          billsToDelete.length
+        } associated bills`
+      )
+    }
   }
 }
 
