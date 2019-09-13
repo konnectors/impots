@@ -26,7 +26,8 @@ function appendMetadata(docs) {
     const proposedAddress = doc.label.includes(' - ')
       ? doc.label.split(' - ').pop()
       : false
-    if (proposedAddress) metadata.address = proposedAddress
+    if (proposedAddress && !proposedAddress.includes('prélèvements sociaux'))
+      metadata.address = proposedAddress
     ;(metadata.datetime =
       evalDate(
         doc.label,
