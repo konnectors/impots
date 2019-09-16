@@ -28,7 +28,7 @@ const { appendMetadata, formatPhone } = require('./metadata')
 const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
-const REMOVE_OLD_FILES_FLAG = false
+const REMOVE_OLD_FILES_FLAG = true
 const keyBy = require('lodash/keyBy')
 
 module.exports = new BaseKonnector(start)
