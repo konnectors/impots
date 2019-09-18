@@ -111,12 +111,11 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
     const month = new Date(bill.date).getMonth() + 1
     const currentYearEntries = entriesIndex[bill.year + '-' + bill.type]
     if (
-      !bill.isMonthly ||
-      (month > 9 && currentYearEntries && currentYearEntries.length)
+      currentYearEntries &&
+      currentYearEntries.length &&
+      (!bill.isMonthly || month > 9)
     ) {
-      billEntries = billEntries.concat(
-        entriesIndex[bill.year + '-' + bill.type]
-      )
+      billEntries = billEntries.concat(currentYearEntries)
     }
 
     // add levenshtein from bill address to entries addresses if any
