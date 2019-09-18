@@ -304,7 +304,8 @@ async function fetchIdentity() {
   // <br> is found in some long address as line separator
   const lastLineAddress = linesAddress.pop() // Remove the city line from array
   const street = linesAddress.join('\n')
-  const postcode = lastLineAddress.match(/^\d{5}/)[0]
+  const lastLineMatch = lastLineAddress.match(/^\d{5}/)
+  const postcode = lastLineMatch ? lastLineMatch[0] : null
   const city = lastLineAddress.replace(postcode, '').trim()
 
   // Structuring as a io.cozy.contacts
