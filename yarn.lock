@@ -352,9 +352,9 @@
     url-template "^2.0.8"
 
 "@octokit/types@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@octokit/types/-/types-2.0.1.tgz#0caf0364e010296265621593ac9a37f40ef75dad"
-  integrity sha512-YDYgV6nCzdGdOm7wy43Ce8SQ3M5DMKegB8E5sTB/1xrxOdo2yS/KgUgML2N2ZGD621mkbdrAglwTyA4NDOlFFA==
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/@octokit/types/-/types-2.0.2.tgz#0888497f5a664e28b0449731d5e88e19b2a74f90"
+  integrity sha512-StASIL2lgT3TRjxv17z9pAqbnI7HGu9DrJlg3sEBFfCLaMEqp+O3IQPUF6EZtQ4xkAu2ml6kMBBCtGxjvmtmuQ==
   dependencies:
     "@types/node" ">= 8"
 
@@ -385,9 +385,9 @@
     "@babel/types" "^7.0.0"
 
 "@types/babel__traverse@*", "@types/babel__traverse@^7.0.6":
-  version "7.0.7"
-  resolved "https://registry.yarnpkg.com/@types/babel__traverse/-/babel__traverse-7.0.7.tgz#2496e9ff56196cc1429c72034e07eab6121b6f3f"
-  integrity sha512-CeBpmX1J8kWLcDEnI3Cl2Eo6RfbGvzUctA+CjZUhOKDFbLfcr7fc4usEqLNWetrlJd7RhAkyYe2czXop4fICpw==
+  version "7.0.8"
+  resolved "https://registry.yarnpkg.com/@types/babel__traverse/-/babel__traverse-7.0.8.tgz#479a4ee3e291a403a1096106013ec22cf9b64012"
+  integrity sha512-yGeB2dHEdvxjP0y4UbRtQaSkXJ9649fYCmIdRoul5kfAoGCwxuCbMhag0k3RPfnuh9kPGm8x89btcfDEXdVWGw==
   dependencies:
     "@babel/types" "^7.3.0"
 
@@ -417,9 +417,9 @@
     "@types/istanbul-lib-report" "*"
 
 "@types/node@*", "@types/node@>= 8":
-  version "12.12.9"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.12.9.tgz#0b5ae05516b757cbff2e82c04500190aef986c7b"
-  integrity sha512-kV3w4KeLsRBW+O2rKhktBwENNJuqAUQHS3kf4ia2wIaF/MN6U7ANgTsx7tGremcA0Pk3Yh0Hl0iKiLPuBdIgmw==
+  version "12.12.11"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-12.12.11.tgz#bec2961975888d964196bf0016a2f984d793d3ce"
+  integrity sha512-O+x6uIpa6oMNTkPuHDa9MhMMehlxLAd5QcOvKRjAFsBVpeFWTOPnXbDvILvFgFFZfQ1xh1EZi1FbXxUix+zpsQ==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.0"
@@ -1642,7 +1642,7 @@ cozy-client-js@0.16.4, cozy-client-js@^0.16.4:
     pouchdb-browser "7.0.0"
     pouchdb-find "7.0.0"
 
-cozy-client@^7.12.0, cozy-client@^7.9.0:
+cozy-client@^7.12.0:
   version "7.12.0"
   resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-7.12.0.tgz#c5b01c720ba205cb99ca3b54f1906d5e099eb266"
   integrity sha512-goLh1Mkp6ym4ZquhatnRfQmSNowzH39/ZpkdtA7wBJExTzoEWBRyYuGtWf+euSo1Guqss8Yyo/MRy6T5OJ4PFw==
@@ -1665,7 +1665,7 @@ cozy-device-helper@^1.7.3:
   dependencies:
     lodash "4.17.15"
 
-cozy-doctypes@^1.67.4, cozy-doctypes@^1.69.0:
+cozy-doctypes@^1.69.0:
   version "1.69.0"
   resolved "https://registry.yarnpkg.com/cozy-doctypes/-/cozy-doctypes-1.69.0.tgz#6718f016206f2afff75b9976d6f429e45f966bdc"
   integrity sha512-VsC/E1liapUuLXXAjd18o2b2pLEgO57KEh+L5qGVHjleoefaBzVH05HFBFpQ05BwyxbGl7XOAJt+jBGcQaco6g==
@@ -1693,7 +1693,7 @@ cozy-jobs-cli@1.10.3:
     replay "2.4.0"
     strip-json-comments "3.0.1"
 
-cozy-konnector-libs@4.32.0:
+cozy-konnector-libs@4.32.0, cozy-konnector-libs@^4.31.0:
   version "4.32.0"
   resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.32.0.tgz#db6f4c76d7574e5e2eeebd67a654b9aaecc4c384"
   integrity sha512-8POClswFSVTDPBFyRiDKyKi/UiDetKXif1o891o4/Rj5NQ4JGVzEgDErBpYFJAOWh9ctOW8Nf+AJ67JhuXvhzg==
@@ -1713,33 +1713,6 @@ cozy-konnector-libs@4.32.0:
     lodash-id "^0.14.0"
     lowdb "^1.0.0"
     mime-types "^2.1.25"
-    raven "^2.6.4"
-    raw-body "^2.4.1"
-    request "^2.88.0"
-    request-debug "^0.2.0"
-    request-promise "^4.2.5"
-    strip-json-comments "^3.0.1"
-
-cozy-konnector-libs@^4.31.0:
-  version "4.31.0"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-4.31.0.tgz#509282ab2f1b2a1e804601039e022e3bb45b303e"
-  integrity sha512-akasZnkR/PIBbIK1+WWEoMUjPDGq7xKHlo8C/bFkZMZeq40ETtZSyb2O4+TtXPv/ExWvlXzv9mTWZ90Rbt5agw==
-  dependencies:
-    bluebird "^3.7.1"
-    bluebird-retry "^0.11.0"
-    btoa "1.2.1"
-    cheerio "^1.0.0-rc.3"
-    classificator "^0.3.3"
-    cozy-client "^7.9.0"
-    cozy-client-js "^0.16.4"
-    cozy-doctypes "^1.67.4"
-    cozy-logger "^1.6.0"
-    date-fns "^1.30.1"
-    file-type "^12.4.0"
-    geco "^0.11.1"
-    lodash-id "^0.14.0"
-    lowdb "^1.0.0"
-    mime-types "^2.1.24"
     raven "^2.6.4"
     raw-body "^2.4.1"
     request "^2.88.0"
@@ -3125,7 +3098,7 @@ has-flag@^4.0.0:
   resolved "https://registry.yarnpkg.com/has-flag/-/has-flag-4.0.0.tgz#944771fd9c81c81265c4d6941860da06bb59479b"
   integrity sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==
 
-has-symbols@^1.0.0:
+has-symbols@^1.0.0, has-symbols@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/has-symbols/-/has-symbols-1.0.1.tgz#9f5214758a44196c406d9bd76cebf81ec2dd31e8"
   integrity sha512-PLcsoqu++dmEIZB+6totNFKq/7Do+Z0u4oT0zKOJNl3lYK6vGwwu2hjHs+68OEZbTjiUE9bgOABXbP/GvrS0Kg==
@@ -3633,11 +3606,11 @@ is-stream@^1.0.1, is-stream@^1.1.0:
   integrity sha1-EtSj3U5o4Lec6428hBc66A2RykQ=
 
 is-symbol@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/is-symbol/-/is-symbol-1.0.2.tgz#a055f6ae57192caee329e7a860118b497a950f38"
-  integrity sha512-HS8bZ9ox60yCJLH9snBpIwv9pYUAkcuLhSA1oero1UB5y9aiQpRA8y2ex945AOtCZL1lJDeIk3G5LthswI46Lw==
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/is-symbol/-/is-symbol-1.0.3.tgz#38e1014b9e6329be0de9d24a414fd7441ec61937"
+  integrity sha512-OwijhaRSgqvhm/0ZdAcXNZt9lYdKFpcRDT5ULUuYXPoT794UNOdU+gpT6Rzo7b4V2HUl/op6GqY894AZwv9faQ==
   dependencies:
-    has-symbols "^1.0.0"
+    has-symbols "^1.0.1"
 
 is-typedarray@^1.0.0, is-typedarray@~1.0.0:
   version "1.0.0"
@@ -4595,7 +4568,7 @@ mime-db@1.42.0:
   resolved "https://registry.yarnpkg.com/mime-db/-/mime-db-1.42.0.tgz#3e252907b4c7adb906597b4b65636272cf9e7bac"
   integrity sha512-UbfJCR4UAVRNgMpfImz05smAXK7+c+ZntjaA26ANtkXLlOe947Aag5zdIcKQULAiF9Cq4WxBi9jUs5zkA84bYQ==
 
-mime-types@^2.1.12, mime-types@^2.1.24, mime-types@^2.1.25, mime-types@~2.1.19:
+mime-types@^2.1.12, mime-types@^2.1.25, mime-types@~2.1.19:
   version "2.1.25"
   resolved "https://registry.yarnpkg.com/mime-types/-/mime-types-2.1.25.tgz#39772d46621f93e2a80a856c53b86a62156a6437"
   integrity sha512-5KhStqB5xpTAeGqKBAMgwaYMnQik7teQN4IAzC7npDv6kzeU6prfkR67bc87J1kWMPGkoaZSq1npmexMgkmEVg==
