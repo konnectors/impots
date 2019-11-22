@@ -16,7 +16,13 @@ const requestNoCheerio = requestFactory({
   json: false
 })
 
-module.exports = { getBills, extractBills, extractDetails, parseType }
+module.exports = {
+  getBills,
+  extractBills,
+  extractDetails,
+  parseType,
+  ReconcilIiateBillsWithFiles
+}
 
 async function getBills(login, entries) {
   let cfsuUrl
@@ -104,10 +110,12 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
     let billEntries = entriesIndex[bill.year - 1 + '-' + bill.type] || []
     const month = new Date(bill.date).getMonth() + 1
     const currentYearEntries = entriesIndex[bill.year + '-' + bill.type]
-    if (month > 9 && currentYearEntries && currentYearEntries.length) {
-      billEntries = billEntries.concat(
-        entriesIndex[bill.year + '-' + bill.type]
-      )
+    if (
+      currentYearEntries &&
+      currentYearEntries.length &&
+      (!bill.isMonthly || month > 9)
+    ) {
+      billEntries = billEntries.concat(currentYearEntries)
     }
 
     // add levenshtein from bill address to entries addresses if any
@@ -127,7 +135,7 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
     if (billEntries.length) {
       Object.assign(billEntries[0], {
         amount: bill.amount,
-        date: new Date(bill.date),
+        date: new Date(bill.date + 'T12:00:00'),
         vendor: 'impot',
         currency: 'EUR'
       })
@@ -136,7 +144,9 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
         amount: bill.amount,
         date: new Date(bill.date),
         vendor: 'impot',
-        currency: 'EUR'
+        currency: 'EUR',
+        monthly: bills.isMonthly
+        // bill,
         // candidates: billEntries
       })
     } else {
@@ -161,16 +171,24 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
 
   // fs.writeFileSync('matchedBills.json', JSON.stringify(matchedBills, null, 2))
   // fs.writeFileSync('index.json', JSON.stringify(entriesIndex, null, 2))
-  // fs.writeFileSync('notMatchedBills.json', JSON.stringify(notMatchedBills, null, 2))
+  // fs.writeFileSync(
+  //   'notMatchedBills.json',
+  //   JSON.stringify(notMatchedBills, null, 2)
+  // )
   // fs.writeFileSync('entries.json', JSON.stringify(entries, null, 2))
+  // console.log(JSON.stringify(matchedBills, null, 2))
   return matchedBills
 }
 
 function sortCandidates(entries) {
   return orderBy(
     entries,
-    ['addressDistance', 'fileAttributes.metadata.issueDate'],
-    ['asc', 'desc']
+    [
+      'addressDistance',
+      'fileAttributes.metadata.issueDate',
+      'fileAttributes.metadata.subClassification'
+    ],
+    ['asc', 'desc', 'asc']
   )
 }
 
@@ -236,6 +254,12 @@ function extractDetails($, trMain, year, type, address) {
           .eq(0)
           .html()
       )
+      const isMonthly = isMonthlyPayment(
+        $(tr)
+          .find('td')
+          .eq(0)
+          .html()
+      )
       const amount = parseAmount(
         $(tr)
           .find('td')
@@ -247,8 +271,9 @@ function extractDetails($, trMain, year, type, address) {
         type,
         date,
         amount,
+        isMonthly,
         currency: 'EUR',
-        address
+        ...{ address }
       })
     }
   }
@@ -264,9 +289,13 @@ function parseAmount(string) {
   )
 }
 
-function parseDate(string) {
-  const match = string.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/)
+function parseDate(str) {
+  const match = str.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/)
   return `${match[3]}-${match[2]}-${match[1]}`
+}
+
+function isMonthlyPayment(str) {
+  return str.includes('mensuel')
 }
 
 function parseType(strType) {
