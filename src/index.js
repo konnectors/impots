@@ -159,9 +159,7 @@ async function cleanOldFilesAndBills(folderPath, limit) {
     if (REMOVE_OLD_FILES_FLAG) {
       log(
         'info',
-        `Deleting ${oldFilesToRemove.length} old oldFilesToRemove and ${
-          billsToDelete.length
-        } associated bills`
+        `Deleting ${oldFilesToRemove.length} old oldFilesToRemove and ${billsToDelete.length} associated bills`
       )
       for (const file of oldFilesToRemove) {
         await cozyClient.files.trashById(file._id)
@@ -170,9 +168,7 @@ async function cleanOldFilesAndBills(folderPath, limit) {
     } else {
       log(
         'info',
-        `Would remove ${oldFilesToRemove.length} old oldFilesToRemove and ${
-          billsToDelete.length
-        } associated bills`
+        `Would remove ${oldFilesToRemove.length} old oldFilesToRemove and ${billsToDelete.length} associated bills`
       )
     }
   }
