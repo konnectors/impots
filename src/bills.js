@@ -137,7 +137,8 @@ function ReconcilIiateBillsWithFiles(bills, entries) {
         amount: bill.amount,
         date: new Date(bill.date + 'T12:00:00'),
         vendor: 'impot',
-        currency: 'EUR'
+        currency: 'EUR',
+        isRefund: bill.isRefund
       })
       matchedBills.push({
         ...billEntries[0],
@@ -275,8 +276,29 @@ function extractDetails($, trMain, year, type, address) {
         currency: 'EUR',
         ...{ address }
       })
+    } else if (
+      $(tr)
+        .text()
+        .includes('Remboursement')
+    ) {
+      const parsed = $(tr)
+        .text()
+        .match(/Remboursement d'exc�dent de (.*)\s€./)
+
+      if (parsed) {
+        bills.push({
+          amount: parseFloat(parsed.slice(1)),
+          year,
+          type,
+          date: `${year}-07-01`,
+          currency: 'EUR',
+          isRefund: true,
+          ...{ address }
+        })
+      }
     }
   }
+
   return bills
 }
 
