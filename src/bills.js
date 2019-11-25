@@ -284,13 +284,20 @@ function extractDetails($, trMain, year, type, address) {
       const parsed = $(tr)
         .text()
         .match(/Remboursement d'exc�dent de (.*)\s€./)
+      // the website does not give us information about reimbursement date (year excepted)
+      // we try to guess it according to the type of document
+      const typeToMonth = {
+        income: '07',
+        residence: '11',
+        property: '11'
+      }
 
-      if (parsed) {
+      if (parsed && typeToMonth[type]) {
         bills.push({
           amount: parseFloat(parsed.slice(1)),
           year,
           type,
-          date: `${year}-07-01`,
+          date: `${year}-${typeToMonth[type]}-01`,
           currency: 'EUR',
           isRefund: true,
           ...{ address }

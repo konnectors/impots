@@ -41,11 +41,11 @@ describe('Bills', () => {
 </html>`
 
       const $ = cheerio.load(html)
-      const result = extractDetails($, $('body'), 2019, 'thetype')
+      const result = extractDetails($, $('body'), 2019, 'income')
       expect(result).toEqual([
         {
           year: 2019,
-          type: 'thetype',
+          type: 'income',
           date: '2019-08-16',
           amount: 19,
           currency: 'EUR',
@@ -53,7 +53,7 @@ describe('Bills', () => {
         },
         {
           year: 2019,
-          type: 'thetype',
+          type: 'income',
           date: '2019-07-01',
           amount: 12,
           currency: 'EUR',
