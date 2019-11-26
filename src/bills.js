@@ -5,7 +5,7 @@ const round = require('lodash/round')
 const levenshtein = require('fast-levenshtein')
 // const fs = require('fs')
 const request = requestFactory({
-  //debug: true,
+  // debug: true,
   cheerio: true,
   jar: true,
   json: false
@@ -68,6 +68,11 @@ async function getBills(login, entries) {
   const CSRFToken = $firstForm('input[name="CSRFTOKEN"]').attr('value')
   // log('debug', `CSRFTOKEN is ${CSRFToken}`)
   const formLink = $firstForm('form[name="compteENSUForm"]').attr('action')
+
+  if (!formLink) {
+    log('warn', `Found no payment`)
+    return []
+  }
   // log('debug', `Form Url is ${formLink}`)
   const $fullForm = await request({
     url: `https://cfspart.impots.gouv.fr${formLink}`,
