@@ -30,21 +30,34 @@ describe('Bills', () => {
      <td valign="middle" width="98" class="cssFondTexteImpairRar"> </td>
      <td align="right" width="98" class="cssFondTexteImpairRar" valign="middle"> 19 € </td>
     </tr>
+    <tr>
+      <td colspan="3" style="border-top: 2px solid #ffffff;" class="cssFondTexteImpairRar">
+        <span class="droite">Remboursement d'exc�dent de 12&nbsp;€.</span>
+      </td>
+    </tr>
    </tbody>
   </table>
  </body>
 </html>`
 
       const $ = cheerio.load(html)
-      const result = extractDetails($, $('body'), 2019, 'thetype')
+      const result = extractDetails($, $('body'), 2019, 'income')
       expect(result).toEqual([
         {
           year: 2019,
-          type: 'thetype',
+          type: 'income',
           date: '2019-08-16',
           amount: 19,
           currency: 'EUR',
           isMonthly: true
+        },
+        {
+          year: 2019,
+          type: 'income',
+          date: '2019-07-01',
+          amount: 12,
+          currency: 'EUR',
+          isRefund: true
         }
       ])
     })
