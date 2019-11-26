@@ -35,6 +35,16 @@ describe('Bills', () => {
         <span class="droite">Remboursement d'exc�dent de 12&nbsp;€.</span>
       </td>
     </tr>
+    <tr>
+      <td class="cssFondTextePairRar">Prélèvement(s)&nbsp;</td>
+      <td class="cssFondTextePairRar" width="98" valign="middle">&nbsp;</td>
+      <td class="cssFondTextePairRar" width="98" valign="middle" align="right">1&nbsp;253&nbsp;€</td>
+    </tr>
+    <tr>
+      <td class="cssFondTexteImpairRar">Avis d'imposition&nbsp;à régler avant le 15/10/2019</td>
+      <td class="cssFondTexteImpairRar" width="98" valign="middle" align="right">1&nbsp;253&nbsp;€</td>
+      <td class="cssFondTexteImpairRar" width="98" valign="middle">&nbsp;</td>
+    </tr>
    </tbody>
   </table>
  </body>
@@ -58,6 +68,14 @@ describe('Bills', () => {
           amount: 12,
           currency: 'EUR',
           isRefund: true
+        },
+        {
+          year: 2019,
+          type: 'income',
+          date: '2019-10-15',
+          amount: 1253,
+          currency: 'EUR',
+          isMonthly: false
         }
       ])
     })
