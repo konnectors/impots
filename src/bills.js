@@ -249,12 +249,17 @@ function extractDetails($, trMain, year, type, address) {
         .html()
         .includes('&#x20AC')
     ) {
-      const date = parseDate(
+      let date = parseDate(
         $(tr)
           .find('td')
           .eq(0)
           .html()
       )
+
+      if (!date) {
+        date = getPrelevementDate($, tr)
+      }
+      if (!date) continue
       const isMonthly = isMonthlyPayment(
         $(tr)
           .find('td')
@@ -315,11 +320,23 @@ function parseAmount(string) {
       .trim()
       .replace('&#xA0;&#x20AC;', '') // Remove end of line (nbsp+€)
       .replace(/&#xFFFD;/g, '') //Separator between 3 digits groups
+      .replace(/&#xA0;/g, '')
   )
 }
 
 function parseDate(str) {
   const match = str.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/)
+  if (!match) return false
+  return `${match[3]}-${match[2]}-${match[1]}`
+}
+
+function getPrelevementDate($, tr) {
+  const str = $(tr)
+    .next('tr')
+    .text()
+
+  const match = str.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/)
+  if (!match) return false
   return `${match[3]}-${match[2]}-${match[1]}`
 }
 
