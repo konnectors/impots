@@ -79,11 +79,16 @@ function validateLogin(login) {
   if (login.includes('@') || login.includes('.')) {
     throw new Error('LOGIN_FAILED.FRANCE_CONNECT_LOGIN')
   }
+
+  if (login.length > 13) {
+    log('error', `login length is ${login.length}`)
+    throw new Error('LOGIN_FAILED')
+  }
 }
 
 async function login(fields) {
   log('info', 'Logging in')
-  validateLogin(fields.login)
+  validateLogin(cleanLogin(fields.login))
   let $
 
   // Precheck Fiscal Number, not mandatory, only for login_failed detection
