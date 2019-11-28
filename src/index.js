@@ -76,6 +76,7 @@ async function login(fields) {
   let $
 
   // Precheck Fiscal Number, not mandatory, only for login_failed detection
+  await request.get('https://cfspart.impots.gouv.fr/LoginAccess')
   try {
     $ = await request({
       method: 'POST',
@@ -90,10 +91,7 @@ async function login(fields) {
     log('error', err)
     throw new Error(errors.VENDOR_DOWN)
   }
-  if (
-    $.html().includes("postMessage('ctx,EXISTEPAS") ||
-    $.html().includes("postMessage('ctx,ERR")
-  ) {
+  if ($.html().includes("postMessage('ctx,EXISTEPAS")) {
     log('error', 'Fiscal number does not exist')
     throw new Error(errors.LOGIN_FAILED)
   }
