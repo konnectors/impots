@@ -53,7 +53,7 @@ async function start(fields) {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
-  const bills = await getBills(fields.login, newDocuments)
+  const bills = await getBills(cleanLogin(fields.login), newDocuments)
   log('info', 'saving all bills')
   await this.saveBills(bills, fields, {
     contentType: 'application/pdf',
@@ -64,7 +64,7 @@ async function start(fields) {
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity()
-    await this.saveIdentity(ident, fields.login)
+    await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
     log('warn', e.message)
