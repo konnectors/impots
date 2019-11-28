@@ -90,7 +90,10 @@ async function login(fields) {
     log('error', err)
     throw new Error(errors.VENDOR_DOWN)
   }
-  if ($.html().includes("postMessage('ctx,EXISTEPAS")) {
+  if (
+    $.html().includes("postMessage('ctx,EXISTEPAS") ||
+    $.html().includes("postMessage('ctx,ERR")
+  ) {
     log('error', 'Fiscal number does not exist')
     throw new Error(errors.LOGIN_FAILED)
   }
