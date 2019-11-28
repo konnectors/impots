@@ -80,7 +80,7 @@ function validateLogin(login) {
     throw new Error('LOGIN_FAILED.FRANCE_CONNECT_LOGIN')
   }
 
-  if (login.length > 13) {
+  if (login.length !== 13) {
     log('error', `login length is ${login.length}`)
     throw new Error('LOGIN_FAILED')
   }
