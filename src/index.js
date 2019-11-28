@@ -76,7 +76,7 @@ function cleanLogin(login) {
 }
 
 function validateLogin(login) {
-  if (login.includes('@')) {
+  if (login.includes('@') || login.includes('.')) {
     throw new Error('LOGIN_FAILED.FRANCE_CONNECT_LOGIN')
   }
 }
