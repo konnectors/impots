@@ -162,7 +162,11 @@ async function cleanOldFilesAndBills(folderPath, limit) {
         `Deleting ${oldFilesToRemove.length} old oldFilesToRemove and ${billsToDelete.length} associated bills`
       )
       for (const file of oldFilesToRemove) {
-        await cozyClient.files.trashById(file._id)
+        try {
+          await cozyClient.files.trashById(file._id)
+        } catch (err) {
+          log('warn', err.message)
+        }
       }
       await utils.batchDelete('io.cozy.bills', billsToDelete)
     } else {
