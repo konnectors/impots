@@ -75,8 +75,15 @@ function cleanLogin(login) {
   return login.replace(/\s|[A-Z]|[a-z]/g, '')
 }
 
+function validateLogin(login) {
+  if (login.includes('@')) {
+    throw new Error('LOGIN_FAILED.FRANCE_CONNECT_LOGIN')
+  }
+}
+
 async function login(fields) {
   log('info', 'Logging in')
+  validateLogin(fields.login)
   let $
 
   // Precheck Fiscal Number, not mandatory, only for login_failed detection
