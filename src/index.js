@@ -71,6 +71,10 @@ async function start(fields) {
   }
 }
 
+function cleanLogin(login) {
+  return login.replace(/\s|[A-Z]|[a-z]/g, '')
+}
+
 async function login(fields) {
   log('info', 'Logging in')
   let $
@@ -83,7 +87,7 @@ async function login(fields) {
       uri: `${baseUrl}/GetContexte?op=c&url=`,
       form: {
         url: '',
-        spi: fields.login
+        spi: cleanLogin(fields.login)
       }
     })
   } catch (err) {
@@ -102,7 +106,7 @@ async function login(fields) {
       uri: `${baseUrl}/LoginAEL?op=c&url=`,
       form: {
         url: '',
-        spi: fields.login,
+        spi: cleanLogin(fields.login),
         pwd: fields.password
       }
     })
