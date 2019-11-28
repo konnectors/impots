@@ -107,6 +107,14 @@ async function login(fields) {
     throw new Error(errors.LOGIN_FAILED)
   }
 
+  if ($.html().includes("postMessage('ctx,3S'")) {
+    log(
+      'warn',
+      `Vous devez créer votre espace en saisissant votre numéro d'accès en ligne et votre revenu fiscal de référence.`
+    )
+    throw new Error('USER_ACTION_NEEDED.CREATE_ACCOUNT')
+  }
+
   try {
     $ = await request({
       method: 'POST',
