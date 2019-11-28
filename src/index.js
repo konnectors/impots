@@ -53,7 +53,7 @@ async function start(fields) {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
-  const bills = await getBills(fields.login, newDocuments)
+  const bills = await getBills(cleanLogin(fields.login), newDocuments)
   log('info', 'saving all bills')
   await this.saveBills(bills, fields, {
     contentType: 'application/pdf',
@@ -64,7 +64,7 @@ async function start(fields) {
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity()
-    await this.saveIdentity(ident, fields.login)
+    await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
     log('warn', e.message)
@@ -75,8 +75,20 @@ function cleanLogin(login) {
   return login.replace(/\s|[A-Z]|[a-z]/g, '')
 }
 
+function validateLogin(login) {
+  if (login.includes('@') || login.includes('.')) {
+    throw new Error('LOGIN_FAILED.FRANCE_CONNECT_LOGIN')
+  }
+
+  if (login.length !== 13) {
+    log('error', `login length is ${login.length}`)
+    throw new Error('LOGIN_FAILED')
+  }
+}
+
 async function login(fields) {
   log('info', 'Logging in')
+  validateLogin(cleanLogin(fields.login))
   let $
 
   // Precheck Fiscal Number, not mandatory, only for login_failed detection
@@ -98,6 +110,14 @@ async function login(fields) {
   if ($.html().includes("postMessage('ctx,EXISTEPAS")) {
     log('error', 'Fiscal number does not exist')
     throw new Error(errors.LOGIN_FAILED)
+  }
+
+  if ($.html().includes("postMessage('ctx,3S'")) {
+    log(
+      'warn',
+      `Vous devez créer votre espace en saisissant votre numéro d'accès en ligne et votre revenu fiscal de référence.`
+    )
+    throw new Error('USER_ACTION_NEEDED.CREATE_ACCOUNT')
   }
 
   try {
