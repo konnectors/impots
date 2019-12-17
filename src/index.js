@@ -232,10 +232,10 @@ async function getDocuments(lastYear) {
     const $year = await request(`${baseUrl}/enp/ensu/documents.do?n=${year}`)
     const tmpDocs = Array.from(
       $year('.documents')
-        .find('div .document')
+        .find('.document')
         .map((idx, el) => {
           const label = $year(el)
-            .find('div .texte')
+            .find('div.texte')
             .text()
             .trim()
           const idEnsua = $year(el)
@@ -319,9 +319,7 @@ async function fetchIdentity() {
 
   // We extracted the address this way to be able to keep the cariage return information
   //  and parse it
-  const formattedAddress = $('.infoPersonnelle ul li')
-    .eq(7)
-    .find('.inputInfo span')
+  const formattedAddress = $('#adressepostale')
     .html()
     .replace('<br>', '\n')
 
