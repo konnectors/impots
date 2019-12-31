@@ -53,7 +53,7 @@
     "husky": "3.1.0",
     "jest": "24.9.0",
     "konitor": "0.10.3",
-    "webpack": "4.41.3",
+    "webpack": "4.41.5",
     "webpack-cli": "3.3.10"
   }
 }
