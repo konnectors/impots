@@ -3,6 +3,7 @@ node_js:
 - '12'
 env:
   global:
+  - MATTERMOST_CHANNEL=publication
   # REGISTRY_TOKEN(editor=cozy, app=impots)
   - secure: JlGKtBasuh2R+E/SbYQ8YMIgaWgBk7ChbzyThSye6HTOBA1lAMqMUPUdC+d/RkGftIHGaC6K3lhwiYGH/7/i/UhEAdFXT+p3OiF571KyhFWolxaeAO5S5SmY3FBNo54t0nC1j8MQk8mjqYMTp98qJdNgMXr8QJkUi+M4Rf7kMBXCm7CYtJYaCgAZzwhACJBYx+PbyX64OndInr7xu7bjQRyoNL8fVA83mzGef0qPnZy7sAnrBEou8mx9VlyAS8o/M8FwPw2JKZawAEaeTcQxuMD1HSEjZC7BSx2/iTavV5ZzfeUu3LJAWOK2M5HgIBwaA1XIlt0I7VKGQH2kZdjuniUpgJfSSmrOLsS45IHXCvGb1ruGHJt5nHDeuRuPs7VqRfuWboW6bYDIosQtWZrluubf3jXiJLV67HF/NDoqqv9+nv3aQO51HT+iLgATP+ajBhnSTFAFpZsUZN9ZPiyjWJ1ADRhpyIAx+hq78w04mCY/MiYBBsd/Fp+lbifpcDUB/TGCdBgE4tOXHbqeCbintWir+DG10hUBZtNHQrz6tPWxHz4Lnh0XdR3SAAEUefF8XhMDltmHnvKUoDVwQ2446L0DNfiUOz3j5XoQRH5UgXMyctdMJJHQ7DA6JGOrMWmhVX5yx6Ke3/wi6ojNqkiVm7tiF6VDMpHwurc73rCOvcA=
   # MATTERMOST_HOOK_URL
@@ -18,7 +19,6 @@ branches:
 script:
 - yarn lint
 - yarn build
-- yarn test
 deploy:
 - provider: script
   skip-cleanup: true
