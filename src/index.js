@@ -29,7 +29,7 @@ const baseUrl = 'https://cfspart.impots.gouv.fr'
 module.exports = new BaseKonnector(start)
 
 async function start(fields) {
-  await login(fields)
+  await login.bind(this)(fields)
   let newDocuments
   try {
     newDocuments = await getDocuments()
@@ -79,6 +79,7 @@ function validateLogin(login) {
 
 async function login(fields) {
   log('info', 'Logging in')
+  await this.deactivateAutoSuccessfulLogin()
   validateLogin(cleanLogin(fields.login))
   let $
 
@@ -138,6 +139,7 @@ async function login(fields) {
   } else {
     throw new Error('UNKOWN_LOGIN_STATUS')
   }
+  await this.notifySuccessfulLogin()
 }
 
 async function getDocuments() {
