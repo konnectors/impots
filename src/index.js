@@ -150,10 +150,11 @@ async function getDocuments() {
     $('.date')
       .find('a')
       .map((idx, el) => {
-        const year = $(el)
-          .text()
-          .split(' ')
-          .pop()
+        const year = el.children
+          .filter(tag => tag.type === 'text')
+          .map(t => t.data)
+          .join('')
+          .trim()
         if (year.match(/^\d{4}$/) === null) {
           throw 'Docs year scraping failed'
         }
