@@ -27,6 +27,10 @@
       }
     }
   },
+  "time_interval": [
+    0,
+    24
+  ],
   "data_types": [
     "document",
     "bill"
@@ -42,10 +46,7 @@
       "type": "io.cozy.files"
     },
     "accounts": {
-      "type": "io.cozy.accounts",
-      "verbs": [
-        "GET"
-      ]
+      "type": "io.cozy.accounts"
     },
     "identities": {
       "type": "io.cozy.identities"
@@ -104,6 +105,7 @@
     }
   },
   "features": [
+    "LOGIN_OK",
     "METADATA_DEDUP",
     "IDENTITY"
   ],
