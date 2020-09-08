@@ -148,7 +148,10 @@ async function getDocuments() {
     $('.date')
       .find('a')
       .map((idx, el) => {
-        const year = $(el).text()
+        const year = $(el)
+          .text()
+          .split(' ')
+          .pop()
         if (year.match(/^\d{4}$/) === null) {
           throw 'Docs year scraping failed'
         }
@@ -164,7 +167,7 @@ async function getDocuments() {
         .find('.document')
         .map((idx, el) => {
           const label = $year(el)
-            .find('div.texte')
+            .find('div.texte > span')
             .text()
             .trim()
 
