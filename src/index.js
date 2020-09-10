@@ -170,7 +170,7 @@ async function getDocuments() {
         .find('.document')
         .map((idx, el) => {
           const label = $year(el)
-            .find('div.texte > span')
+            .find('div.hidden-xs.texte > span')
             .text()
             .trim()
 
