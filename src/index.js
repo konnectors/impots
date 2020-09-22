@@ -173,6 +173,11 @@ async function getDocuments() {
             .find('div.hidden-xs.texte > span')
             .text()
             .trim()
+          // Evaluating the buggy label with double text entry
+          const buggyLabel = $year(el)
+            .find('div.texte > span')
+            .text()
+            .trim()
 
           const idEnsua = $year(el)
             .find('input')
@@ -186,6 +191,16 @@ async function getDocuments() {
           filename = filename.replace(' : ', ' - ')
           // 3) replace time (19:26 -> 19h26)
           filename = filename.replace(':', 'h')
+
+          // Evaluate the problematic filename the same way
+          let buggyFilename = `${year}-${buggyLabel}.pdf`
+          buggyFilename = buggyFilename.replace(/\//g, '-')
+          buggyFilename = buggyFilename.replace(' : ', ' - ') // eslint-disable-line
+          buggyFilename = buggyFilename.replace(' : ', ' - ')
+          buggyFilename = buggyFilename.replace(':', 'h')
+          // Remove last : in second time appearance (15:27) as it was remove by saveFiles
+          buggyFilename = buggyFilename.replace(':', '')
+
           return {
             year,
             label,
@@ -193,7 +208,8 @@ async function getDocuments() {
             filename,
             fileurl:
               `https://cfspart.impots.gouv.fr/enp/ensu/Affichage_Document_PDF` +
-              `?idEnsua=${idEnsua}`
+              `?idEnsua=${idEnsua}`,
+            shouldReplaceName: buggyFilename
           }
         })
     )
