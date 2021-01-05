@@ -324,7 +324,7 @@ function parseAmount(string) {
     string
       .trim()
       .replace('&#xA0;&#x20AC;', '') // Remove end of line (nbsp+€)
-      .replace(/&#xFFFD;/g, '') //Separator between 3 digits groups
+      .replace(/&#xFFFD;/g, '') // Separator between 3 digits groups
       .replace(/&#xA0;/g, '')
   )
 }
