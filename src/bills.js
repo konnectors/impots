@@ -1,4 +1,4 @@
-const { requestFactory, log } = require('cozy-konnector-libs')
+const { requestFactory, log, errors } = require('cozy-konnector-libs')
 const get = require('lodash/get')
 const orderBy = require('lodash/orderBy')
 const round = require('lodash/round')
@@ -44,7 +44,10 @@ async function getBills(login, entries) {
       followAllRedirects: false
     })
   } catch (e) {
-    if (e.statusCode === 302) {
+    if (e.statusCode === 404) {
+      log('error', e.message)
+      throw new Error(errors.VENDOR_DOWN)
+    } else if (e.statusCode === 302) {
       // Expect cookie setting and catching an url like :
       //   https://cfspart.impots.gouv.fr/cfsu-XX/compteENSU.html?spi=05050505050
       cfsuUrl = e.response.headers.location
