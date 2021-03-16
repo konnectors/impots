@@ -44,13 +44,16 @@ async function start(fields) {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
-  const bills = await getBills(cleanLogin(fields.login), newDocuments)
+
+  // BYPASSING BILLS FETCH AS PAIMENTS DO NOT WORK
+  /* const bills = await getBills(cleanLogin(fields.login), newDocuments)
   log('info', 'saving all bills')
   await this.saveBills(bills, fields, {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua'],
     linkBankOperations: false
   })
+  */
 
   try {
     log('info', 'Fetching identity ...')
