@@ -22,6 +22,7 @@ moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
 const { appendMetadata, formatPhone } = require('./metadata')
+// eslint-disable-next-line no-unused-vars
 const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
@@ -44,13 +45,16 @@ async function start(fields) {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
-  const bills = await getBills(cleanLogin(fields.login), newDocuments)
+
+  // BYPASSING BILLS FETCH AS PAIMENTS DO NOT WORK
+  /* const bills = await getBills(cleanLogin(fields.login), newDocuments)
   log('info', 'saving all bills')
   await this.saveBills(bills, fields, {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua'],
     linkBankOperations: false
   })
+  */
 
   try {
     log('info', 'Fetching identity ...')
