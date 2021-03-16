@@ -22,6 +22,7 @@ moment.locale('fr')
 const sleep = require('util').promisify(global.setTimeout)
 
 const { appendMetadata, formatPhone } = require('./metadata')
+// eslint-disable-next-line no-unused-vars
 const { getBills } = require('./bills')
 
 const baseUrl = 'https://cfspart.impots.gouv.fr'
