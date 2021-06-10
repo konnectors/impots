@@ -137,6 +137,9 @@ async function login(fields) {
     log('info', 'Successfully logged in')
     const confirmUrl = $.html().match(/postMessage\(.*,(.*),.*\)/)[1]
     if (confirmUrl) await request(confirmUrl)
+  } else if ($.html().includes("postMessage('lmdp,4665'")) {
+    log('error', 'detected a maintenance, lmdp,4665')
+    throw new Error(errors.VENDOR_DOWN + '.MAINTENANCE')
   } else if ($.html().includes("postMessage('lmdp")) {
     log('error', 'Password seems wrong')
     throw new Error(errors.LOGIN_FAILED)
