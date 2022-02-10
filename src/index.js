@@ -7,6 +7,7 @@ const {
   requestFactory,
   log,
   scrape,
+  utils,
   errors
 } = require('cozy-konnector-libs')
 
@@ -41,10 +42,11 @@ async function start(fields) {
   }
 
   log('info', 'saving all files')
-  await this.saveFiles(newDocuments, fields, {
+  const file = await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
+  const tax_informations = await fetchTaxInfos(file)
 
   // BYPASSING BILLS FETCH AS PAIMENTS DO NOT WORK
   /* const bills = await getBills(cleanLogin(fields.login), newDocuments)
@@ -58,7 +60,7 @@ async function start(fields) {
 
   try {
     log('info', 'Fetching identity ...')
-    const ident = await fetchIdentity()
+    const ident = await fetchIdentity(tax_informations)
     await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
@@ -226,7 +228,7 @@ async function getDocuments() {
   return docs
 }
 
-async function fetchIdentity() {
+async function fetchIdentity(tax_informations) {
   // Prefetch is mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
@@ -243,6 +245,7 @@ async function fetchIdentity() {
       .pop()
       .trim()
   )
+  result.tax_informations = tax_informations
   // Not used for identities, but can be useful later
   // result.tauxImposition = parseFloat(
   //   $('#libelle-tx-foyer')
@@ -333,4 +336,137 @@ async function fetchIdentity() {
     }
   }
   return result
+}
+
+async function fetchTaxInfos(files) {
+  const rawTaxInfos = []
+  let fiscalRefRevenue
+  for (let i = 0; i < files.length; i++) {
+    const fileId = files[i].fileDocument._id
+    const resp = await utils.getPdfText(fileId)
+    let year = files[i].fileDocument.metadata.year
+    if (year === undefined) {
+      const getYear = files[i].filename.split('-')
+      year = getYear[0]
+    }
+    try {
+      const testFiscalRef = resp['2'][0].str
+      if (testFiscalRef === `Impôt sur les revenus de ${parseInt(year - 1)}`) {
+        const transform = await findTransform(resp)
+        fiscalRefRevenue = transform
+      }
+    } catch (err) {
+      log('info', 'No transform property found, continue')
+    }
+    const firstAJ = resp.text.match(/1AJ Salaires - Déclarant 1 : ([0-9]+)/g)
+    const firstBJ = resp.text.match(/1BJ Salaires - Déclarant 2 : ([0-9]+)/g)
+
+    if (firstAJ) {
+      if (firstAJ && firstBJ) {
+        rawTaxInfos.push({
+          filename: files[i].filename,
+          year: parseInt(year),
+          declarers: {
+            firstAJ: firstAJ[0].split(':')[1],
+            firstBJ: firstBJ[0].split(':')[1]
+          }
+        })
+      } else {
+        log('info', 'no 1BJ line found, saving 1AJ only')
+        rawTaxInfos.push({
+          filename: files[i].filename,
+          year: parseInt(year),
+          declarers: { firstAJ: firstAJ[0].split(':')[1] }
+        })
+      }
+    }
+    if (fiscalRefRevenue != null) {
+      rawTaxInfos.push({
+        filename: files[i].filename,
+        year: parseInt(year),
+        fiscalRefRevenue: fiscalRefRevenue
+      })
+    }
+  }
+  const taxInfos = await formatTaxInfos(rawTaxInfos)
+
+  return taxInfos
+}
+
+async function findTransform(resp) {
+  log('debug', 'Starting findTransform')
+  let matchedAmount
+  let compareTransform
+
+  for (let i = 0; i < resp['2'].length; i++) {
+    const str = resp['2'][i].str
+    const findTransform = resp['2'][i].transform
+    if (str === `Revenu fiscal de référence`) {
+      compareTransform = findTransform.pop()
+    }
+  }
+
+  for (let i = 0; i < resp['2'].length; i++) {
+    const str = resp['2'][i].str
+    const findTransform = resp['2'][i].transform.pop()
+    if (findTransform === compareTransform) {
+      matchedAmount = parseInt(str, 10)
+    }
+  }
+
+  return matchedAmount
+}
+
+async function formatTaxInfos(rawTaxInfos) {
+  log('info', 'Starting to format tax information')
+  const availableYears = []
+  const tax_informations = []
+
+  rawTaxInfos.forEach(info => {
+    if (info.year) {
+      availableYears.push(info.year)
+    }
+  })
+  const uniqYears = [...new Set(availableYears)]
+
+  for (let i = 0; i < uniqYears.length; i++) {
+    let firstAJ
+    let firstBJ
+    let RFR
+    let year
+    let fileRFR
+    let fileFirstJ
+    for (let j = 0; j < rawTaxInfos.length; j++) {
+      if (rawTaxInfos[j].year === uniqYears[i]) {
+        year = rawTaxInfos[j].year
+        if (rawTaxInfos[j].declarers) {
+          firstAJ = parseInt(rawTaxInfos[j].declarers.firstAJ)
+          if (!firstBJ) {
+            firstBJ = null
+          } else {
+            firstBJ = rawTaxInfos[j].declarers.firstBJ
+          }
+          fileFirstJ = rawTaxInfos[j].filename
+        }
+        if (rawTaxInfos[j].fiscalRefRevenue) {
+          RFR = rawTaxInfos[j].fiscalRefRevenue
+          fileRFR = rawTaxInfos[j].filename
+        }
+      }
+    }
+
+    tax_informations.push({
+      year: year,
+      RFR: RFR,
+      '1AJ': firstAJ,
+      '1BJ': firstBJ,
+      currency: 'EUR',
+      files: {
+        '1AJ': fileFirstJ,
+        '1BJ': fileFirstJ,
+        RFR: fileRFR
+      }
+    })
+  }
+  return tax_informations
 }
