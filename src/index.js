@@ -7,6 +7,7 @@ const {
   requestFactory,
   log,
   scrape,
+  utils,
   errors
 } = require('cozy-konnector-libs')
 
@@ -41,7 +42,7 @@ async function start(fields) {
   }
 
   log('info', 'saving all files')
-  await this.saveFiles(newDocuments, fields, {
+  const files = await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
@@ -58,7 +59,7 @@ async function start(fields) {
 
   try {
     log('info', 'Fetching identity ...')
-    const ident = await fetchIdentity()
+    const ident = await fetchIdentity(files)
     await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
@@ -181,14 +182,9 @@ async function getDocuments() {
             .text()
             .trim()
           // Evaluating the buggy label with double text entry
-          const buggyLabel = $year(el)
-            .find('div.texte > span')
-            .text()
-            .trim()
+          const buggyLabel = $year(el).find('div.texte > span').text().trim()
 
-          const idEnsua = $year(el)
-            .find('input')
-            .attr('value')
+          const idEnsua = $year(el).find('input').attr('value')
           let filename = `${year}-${label}.pdf`
           // Replace / and : found in some labels
           // 1) in date (01/01/2018 -> 01-01-2018)
@@ -226,25 +222,20 @@ async function getDocuments() {
   return docs
 }
 
-async function fetchIdentity() {
+async function fetchIdentity(files) {
   // Prefetch is mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
-  const result = {}
+  const result = { contact: {}, tax_informations: {} }
 
-  result.maritalStatus = $('#libelle-sit-fam')
-    .text()
-    .trim()
-  result.numberOfDependants = Number(
-    $('.p-nb-pac')
-      .text()
-      .split(':')
-      .pop()
-      .trim()
+  result.contact.maritalStatus = $('#libelle-sit-fam').text().trim()
+  result.contact.numberOfDependants = Number(
+    $('.p-nb-pac').text().split(':').pop().trim()
   )
+  result.tax_informations = await fetchTaxInfos(files)
   // Not used for identities, but can be useful later
-  // result.tauxImposition = parseFloat(
+  // result.contact.tauxImposition = parseFloat(
   //   $('#libelle-tx-foyer')
   //     .text()
   //     .replace(',', '.')
@@ -278,9 +269,7 @@ async function fetchIdentity() {
 
   // We extracted the address this way to be able to keep the cariage return information
   //  and parse it
-  const formattedAddress = $('#adressepostale')
-    .html()
-    .replace('<br>', '\n')
+  const formattedAddress = $('#adressepostale').html().replace('<br>', '\n')
 
   const linesAddress = formattedAddress.split(/\n|<br>/)
   // <br> is found in some long address as line separator
@@ -298,39 +287,184 @@ async function fetchIdentity() {
     célibataire: 'single',
     'veuf(ve)': 'widowed'
   }
-  result.maritalStatus = maritalStatusTable[result.maritalStatus]
-  result.address = [{ formattedAddress, street, postcode, city }]
+  result.contact.maritalStatus =
+    maritalStatusTable[result.contact.maritalStatus]
+  result.contact.address = [{ formattedAddress, street, postcode, city }]
 
   for (const info of infos) {
     if (info.key === 'Prénom') {
-      result.name = { givenName: info.value }
+      result.contact.name = { givenName: info.value }
     } else if (info.key === 'Nom') {
-      result.name.familyName = info.value
+      result.contact.name.familyName = info.value
     } else if (info.key === 'Date de naissance') {
-      result.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format(
+      result.contact.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format(
         'YYYY-MM-DD'
       )
     } else if (info.key === 'Lieu de naissance') {
-      result.birthPlace = info.value
+      result.contact.birthPlace = info.value
     } else if (info.key === 'Adresse électronique validée') {
-      result.email = [{ address: info.value }]
+      result.contact.email = [{ address: info.value }]
     } else if (info.key === 'Téléphone portable') {
       if (info.value != '') {
-        if (result.phone) {
-          result.phone.push({ type: 'mobile', number: formatPhone(info.value) })
+        if (result.contact.phone) {
+          result.contact.phone.push({
+            type: 'mobile',
+            number: formatPhone(info.value)
+          })
         } else {
-          result.phone = [{ type: 'mobile', number: formatPhone(info.value) }]
+          result.contact.phone = [
+            { type: 'mobile', number: formatPhone(info.value) }
+          ]
         }
       }
     } else if (info.key === 'Téléphone fixe') {
       if (info.value != '') {
-        if (result.phone) {
-          result.phone.push({ type: 'home', number: formatPhone(info.value) })
+        if (result.contact.phone) {
+          result.contact.phone.push({
+            type: 'home',
+            number: formatPhone(info.value)
+          })
         } else {
-          result.phone = [{ type: 'home', number: formatPhone(info.value) }]
+          result.contact.phone = [
+            { type: 'home', number: formatPhone(info.value) }
+          ]
         }
       }
     }
   }
   return result
+}
+
+async function fetchTaxInfos(files) {
+  const rawTaxInfos = []
+  let fiscalRefRevenue
+  for (let i = 0; i < files.length; i++) {
+    const fileId = files[i].fileDocument._id
+    const resp = await utils.getPdfText(fileId)
+    let year = files[i].fileDocument.metadata.year
+    if (year === undefined) {
+      const getYear = files[i].filename.split('-')
+      year = getYear[0]
+    }
+    try {
+      const testFiscalRef = resp['2'][0].str
+      if (testFiscalRef === `Impôt sur les revenus de ${parseInt(year - 1)}`) {
+        const transform = await findTransform(resp)
+        fiscalRefRevenue = transform
+      }
+    } catch (err) {
+      log('info', 'No transform property found, continue')
+    }
+    const firstAJ = resp.text.match(/1AJ Salaires - Déclarant 1 : ([0-9]+)/g)
+    const firstBJ = resp.text.match(/1BJ Salaires - Déclarant 2 : ([0-9]+)/g)
+
+    if (firstAJ) {
+      if (firstAJ && firstBJ) {
+        rawTaxInfos.push({
+          filename: files[i].filename,
+          year: parseInt(year),
+          declarers: {
+            firstAJ: firstAJ[0].split(':')[1],
+            firstBJ: firstBJ[0].split(':')[1]
+          }
+        })
+      } else {
+        log('info', 'no 1BJ line found, saving 1AJ only')
+        rawTaxInfos.push({
+          filename: files[i].filename,
+          year: parseInt(year),
+          declarers: { firstAJ: firstAJ[0].split(':')[1] }
+        })
+      }
+    }
+    if (fiscalRefRevenue != null) {
+      rawTaxInfos.push({
+        filename: files[i].filename,
+        year: parseInt(year),
+        fiscalRefRevenue: fiscalRefRevenue
+      })
+    }
+  }
+  const taxInfos = await formatTaxInfos(rawTaxInfos)
+
+  return taxInfos
+}
+
+// findTransfrorm will find top-margin of the cell with wanted string and match the value associated
+async function findTransform(resp) {
+  log('debug', 'Starting findTransform')
+  let matchedAmount
+  let compareTransform
+  // If true, get the last index of the compareTransform array as it is the top-margin of the cell
+  for (let i = 0; i < resp['2'].length; i++) {
+    const string = resp['2'][i].str
+    const findTransform = resp['2'][i].transform
+    if (string === `Revenu fiscal de référence`) {
+      compareTransform = findTransform.pop()
+    }
+  }
+  // If true, the value in the cell matching the top-margin found above is saved
+  for (let i = 0; i < resp['2'].length; i++) {
+    const string = resp['2'][i].str
+    const findTransform = resp['2'][i].transform.pop()
+    if (findTransform === compareTransform) {
+      matchedAmount = parseInt(string, 10)
+    }
+  }
+  // Return the value of the matched
+  return matchedAmount
+}
+
+async function formatTaxInfos(rawTaxInfos) {
+  log('info', 'Starting to format tax information')
+  const availableYears = []
+  const tax_informations = []
+
+  rawTaxInfos.forEach(info => {
+    if (info.year) {
+      availableYears.push(info.year)
+    }
+  })
+  const uniqYears = [...new Set(availableYears)]
+
+  for (let i = 0; i < uniqYears.length; i++) {
+    let firstAJ
+    let firstBJ
+    let RFR
+    let year
+    let fileRFR
+    let fileFirstJ
+    for (let j = 0; j < rawTaxInfos.length; j++) {
+      if (rawTaxInfos[j].year === uniqYears[i]) {
+        year = rawTaxInfos[j].year
+        if (rawTaxInfos[j].declarers) {
+          firstAJ = parseInt(rawTaxInfos[j].declarers.firstAJ)
+          if (!rawTaxInfos[j].declarers.firstBJ) {
+            firstBJ = null
+          } else {
+            firstBJ = parseInt(rawTaxInfos[j].declarers.firstBJ)
+          }
+          fileFirstJ = rawTaxInfos[j].filename
+        }
+        if (rawTaxInfos[j].fiscalRefRevenue) {
+          RFR = rawTaxInfos[j].fiscalRefRevenue
+          fileRFR = rawTaxInfos[j].filename
+        }
+      }
+    }
+
+    tax_informations.push({
+      year: year,
+      RFR: RFR,
+      '1AJ': firstAJ,
+      '1BJ': firstBJ,
+      currency: 'EUR',
+      files: {
+        '1AJ': fileFirstJ,
+        '1BJ': fileFirstJ,
+        RFR: fileRFR
+      }
+    })
+  }
+  return tax_informations
 }

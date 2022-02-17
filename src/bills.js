@@ -208,22 +208,10 @@ function extractBills($) {
   let currentAddress = undefined
   for (const tr of Array.from($('table.cssFondTableENSU > tbody > tr'))) {
     if (isYearLine($, tr)) {
-      currentYear = $(tr)
-        .find('td')
-        .text()
-        .trim()
+      currentYear = $(tr).find('td').text().trim()
     } else if (isTypeLine($, tr)) {
-      currentType = parseType(
-        $(tr)
-          .find('span.cssImpotENSU')
-          .text()
-          .trim()
-      )
-      currentAddress = parseAddress(
-        $(tr)
-          .find('> td:nth-child(2)')
-          .html()
-      )
+      currentType = parseType($(tr).find('span.cssImpotENSU').text().trim())
+      currentAddress = parseAddress($(tr).find('> td:nth-child(2)').html())
     } else if (isDetailsLine($, tr) && currentType) {
       bills = bills.concat(
         extractDetails($, tr, currentYear, currentType, currentAddress)
@@ -251,35 +239,16 @@ function extractDetails($, trMain, year, type, address) {
     // if has 3 cell and third cell contains €, it's a bill line
     if (
       $(tr).find('td').length === 3 &&
-      $(tr)
-        .find('td')
-        .eq(2)
-        .html()
-        .includes('&#x20AC')
+      $(tr).find('td').eq(2).html().includes('&#x20AC')
     ) {
-      let date = parseDate(
-        $(tr)
-          .find('td')
-          .eq(0)
-          .html()
-      )
+      let date = parseDate($(tr).find('td').eq(0).html())
 
       if (!date) {
         date = getPrelevementDate($, tr)
       }
       if (!date) continue
-      const isMonthly = isMonthlyPayment(
-        $(tr)
-          .find('td')
-          .eq(0)
-          .html()
-      )
-      const amount = parseAmount(
-        $(tr)
-          .find('td')
-          .eq(2)
-          .html()
-      )
+      const isMonthly = isMonthlyPayment($(tr).find('td').eq(0).html())
+      const amount = parseAmount($(tr).find('td').eq(2).html())
       bills.push({
         year,
         type,
@@ -289,11 +258,7 @@ function extractDetails($, trMain, year, type, address) {
         currency: 'EUR',
         ...{ address }
       })
-    } else if (
-      $(tr)
-        .text()
-        .includes('Remboursement')
-    ) {
+    } else if ($(tr).text().includes('Remboursement')) {
       const parsed = $(tr)
         .text()
         .match(/Remboursement d'exc�dent de (.*)\s€./)
@@ -339,9 +304,7 @@ function parseDate(str) {
 }
 
 function getPrelevementDate($, tr) {
-  const str = $(tr)
-    .next('tr')
-    .text()
+  const str = $(tr).next('tr').text()
 
   const match = str.trim().match(/(\d{2})\/(\d{2})\/(\d{4})/)
   if (!match) return false

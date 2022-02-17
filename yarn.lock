@@ -4311,7 +4311,6 @@ functional-red-black-tree@^1.0.1:
 
 "geco@git+https://github.com/konnectors/geco.git#0.11.2":
   version "0.11.2"
-  uid fe0da3cdaabd5714a226014efd61c89bc85e7c56
   resolved "git+https://github.com/konnectors/geco.git#fe0da3cdaabd5714a226014efd61c89bc85e7c56"
   dependencies:
     toni "git+https://github.com/konnectors/toni.git#0.6.3"
@@ -6462,6 +6461,11 @@ path-type@^4.0.0:
   resolved "https://registry.yarnpkg.com/path-type/-/path-type-4.0.0.tgz#84ed01c0a7ba380afe09d90a8c180dcd9d03043b"
   integrity sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==
 
+pdfjs-dist@^2.12.313:
+  version "2.12.313"
+  resolved "https://registry.yarnpkg.com/pdfjs-dist/-/pdfjs-dist-2.12.313.tgz#62f2273737bb956267ae2e02cdfaddcb1099819c"
+  integrity sha512-1x6iXO4Qnv6Eb+YFdN5JdUzt4pAkxSp3aLAYPX93eQCyg/m7QFzXVWJHJVtoW48CI8HCXju4dSkhQZwoheL5mA==
+
 peek-readable@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/peek-readable/-/peek-readable-4.0.0.tgz#b024ef391c86136eba0ae9df3ff4f966a09e9a7e"
@@ -7863,7 +7867,6 @@ token-types@^2.0.0:
 
 "toni@git+https://github.com/konnectors/toni.git#0.6.3":
   version "0.6.3"
-  uid eb813c9d070b494efd78f788cf627bfc9a1019ec
   resolved "git+https://github.com/konnectors/toni.git#eb813c9d070b494efd78f788cf627bfc9a1019ec"
   dependencies:
     bolgia ">=2.7.4"
