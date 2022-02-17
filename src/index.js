@@ -60,7 +60,7 @@ async function start(fields) {
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity(files)
-    await this.saveIdentity({ contact: ident }, cleanLogin(fields.login))
+    await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
     log('warn', e.message)
@@ -227,15 +227,15 @@ async function fetchIdentity(files) {
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
-  const result = {}
+  const result = { contact: {}, tax_informations: {} }
 
-  result.maritalStatus = $('#libelle-sit-fam').text().trim()
-  result.numberOfDependants = Number(
+  result.contact.maritalStatus = $('#libelle-sit-fam').text().trim()
+  result.contact.numberOfDependants = Number(
     $('.p-nb-pac').text().split(':').pop().trim()
   )
   result.tax_informations = await fetchTaxInfos(files)
   // Not used for identities, but can be useful later
-  // result.tauxImposition = parseFloat(
+  // result.contact.tauxImposition = parseFloat(
   //   $('#libelle-tx-foyer')
   //     .text()
   //     .replace(',', '.')
@@ -287,36 +287,47 @@ async function fetchIdentity(files) {
     célibataire: 'single',
     'veuf(ve)': 'widowed'
   }
-  result.maritalStatus = maritalStatusTable[result.maritalStatus]
-  result.address = [{ formattedAddress, street, postcode, city }]
+  result.contact.maritalStatus =
+    maritalStatusTable[result.contact.maritalStatus]
+  result.contact.address = [{ formattedAddress, street, postcode, city }]
 
   for (const info of infos) {
     if (info.key === 'Prénom') {
-      result.name = { givenName: info.value }
+      result.contact.name = { givenName: info.value }
     } else if (info.key === 'Nom') {
-      result.name.familyName = info.value
+      result.contact.name.familyName = info.value
     } else if (info.key === 'Date de naissance') {
-      result.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format(
+      result.contact.birthday = moment(info.value, 'DD MMMM YYYY', 'fr').format(
         'YYYY-MM-DD'
       )
     } else if (info.key === 'Lieu de naissance') {
-      result.birthPlace = info.value
+      result.contact.birthPlace = info.value
     } else if (info.key === 'Adresse électronique validée') {
-      result.email = [{ address: info.value }]
+      result.contact.email = [{ address: info.value }]
     } else if (info.key === 'Téléphone portable') {
       if (info.value != '') {
-        if (result.phone) {
-          result.phone.push({ type: 'mobile', number: formatPhone(info.value) })
+        if (result.contact.phone) {
+          result.contact.phone.push({
+            type: 'mobile',
+            number: formatPhone(info.value)
+          })
         } else {
-          result.phone = [{ type: 'mobile', number: formatPhone(info.value) }]
+          result.contact.phone = [
+            { type: 'mobile', number: formatPhone(info.value) }
+          ]
         }
       }
     } else if (info.key === 'Téléphone fixe') {
       if (info.value != '') {
-        if (result.phone) {
-          result.phone.push({ type: 'home', number: formatPhone(info.value) })
+        if (result.contact.phone) {
+          result.contact.phone.push({
+            type: 'home',
+            number: formatPhone(info.value)
+          })
         } else {
-          result.phone = [{ type: 'home', number: formatPhone(info.value) }]
+          result.contact.phone = [
+            { type: 'home', number: formatPhone(info.value) }
+          ]
         }
       }
     }
