@@ -428,10 +428,10 @@ async function formatTaxInfos(rawTaxInfos) {
         year = rawTaxInfos[j].year
         if (rawTaxInfos[j].declarers) {
           firstAJ = parseInt(rawTaxInfos[j].declarers.firstAJ)
-          if (!firstBJ) {
+          if (!rawTaxInfos[j].declarers.firstBJ) {
             firstBJ = null
           } else {
-            firstBJ = rawTaxInfos[j].declarers.firstBJ
+            firstBJ = parseInt(rawTaxInfos[j].declarers.firstBJ)
           }
           fileFirstJ = rawTaxInfos[j].filename
         }
