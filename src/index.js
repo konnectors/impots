@@ -42,11 +42,10 @@ async function start(fields) {
   }
 
   log('info', 'saving all files')
-  const file = await this.saveFiles(newDocuments, fields, {
+  const files = await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf',
     fileIdAttributes: ['idEnsua']
   })
-  const tax_informations = await fetchTaxInfos(file)
 
   // BYPASSING BILLS FETCH AS PAIMENTS DO NOT WORK
   /* const bills = await getBills(cleanLogin(fields.login), newDocuments)
@@ -60,8 +59,8 @@ async function start(fields) {
 
   try {
     log('info', 'Fetching identity ...')
-    const ident = await fetchIdentity(tax_informations)
-    await this.saveIdentity(ident, cleanLogin(fields.login))
+    const ident = await fetchIdentity(files)
+    await this.saveIdentity({ contact: ident }, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
     log('warn', e.message)
@@ -183,14 +182,9 @@ async function getDocuments() {
             .text()
             .trim()
           // Evaluating the buggy label with double text entry
-          const buggyLabel = $year(el)
-            .find('div.texte > span')
-            .text()
-            .trim()
+          const buggyLabel = $year(el).find('div.texte > span').text().trim()
 
-          const idEnsua = $year(el)
-            .find('input')
-            .attr('value')
+          const idEnsua = $year(el).find('input').attr('value')
           let filename = `${year}-${label}.pdf`
           // Replace / and : found in some labels
           // 1) in date (01/01/2018 -> 01-01-2018)
@@ -228,24 +222,18 @@ async function getDocuments() {
   return docs
 }
 
-async function fetchIdentity(tax_informations) {
+async function fetchIdentity(files) {
   // Prefetch is mandatory if we want maritalStatus
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
   const result = {}
 
-  result.maritalStatus = $('#libelle-sit-fam')
-    .text()
-    .trim()
+  result.maritalStatus = $('#libelle-sit-fam').text().trim()
   result.numberOfDependants = Number(
-    $('.p-nb-pac')
-      .text()
-      .split(':')
-      .pop()
-      .trim()
+    $('.p-nb-pac').text().split(':').pop().trim()
   )
-  result.tax_informations = tax_informations
+  result.tax_informations = await fetchTaxInfos(files)
   // Not used for identities, but can be useful later
   // result.tauxImposition = parseFloat(
   //   $('#libelle-tx-foyer')
@@ -281,9 +269,7 @@ async function fetchIdentity(tax_informations) {
 
   // We extracted the address this way to be able to keep the cariage return information
   //  and parse it
-  const formattedAddress = $('#adressepostale')
-    .html()
-    .replace('<br>', '\n')
+  const formattedAddress = $('#adressepostale').html().replace('<br>', '\n')
 
   const linesAddress = formattedAddress.split(/\n|<br>/)
   // <br> is found in some long address as line separator
@@ -393,27 +379,28 @@ async function fetchTaxInfos(files) {
   return taxInfos
 }
 
+// findTransfrorm will find top-margin of the cell with wanted string and match the value associated
 async function findTransform(resp) {
   log('debug', 'Starting findTransform')
   let matchedAmount
   let compareTransform
-
+  // If true, get the last index of the compareTransform array as it is the top-margin of the cell
   for (let i = 0; i < resp['2'].length; i++) {
-    const str = resp['2'][i].str
+    const string = resp['2'][i].str
     const findTransform = resp['2'][i].transform
-    if (str === `Revenu fiscal de référence`) {
+    if (string === `Revenu fiscal de référence`) {
       compareTransform = findTransform.pop()
     }
   }
-
+  // If true, the value in the cell matching the top-margin found above is saved
   for (let i = 0; i < resp['2'].length; i++) {
-    const str = resp['2'][i].str
+    const string = resp['2'][i].str
     const findTransform = resp['2'][i].transform.pop()
     if (findTransform === compareTransform) {
-      matchedAmount = parseInt(str, 10)
+      matchedAmount = parseInt(string, 10)
     }
   }
-
+  // Return the value of the matched
   return matchedAmount
 }
 
