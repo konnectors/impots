@@ -38,6 +38,7 @@ module.exports = {
   plugins: [
     new CopyPlugin({
       patterns: [
+        { from: 'node_modules/pdfjs-dist/legacy/build/pdf.worker.js' },
         { from: 'manifest.konnector' },
         { from: 'package.json' },
         { from: 'README.md' },
