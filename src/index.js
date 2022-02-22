@@ -1,6 +1,6 @@
 process.env.SENTRY_DSN =
   process.env.SENTRY_DSN ||
-  'https://937eb760d70849bea1e72b5ca92c3391:95635578f48d457a9abd3ac5a75aa3b6@sentry.cozycloud.cc/35'
+  'https://a43bd181dc0b4a99b4a8085215ca00f1@errors.cozycloud.cc/30'
 
 const {
   BaseKonnector,
@@ -12,7 +12,7 @@ const {
 } = require('cozy-konnector-libs')
 
 const request = requestFactory({
-  // debug: true,
+  debug: false,
   cheerio: true,
   jar: true,
   json: false
@@ -40,7 +40,6 @@ async function start(fields) {
     log('warn', 'Error during new documents collection')
     log('warn', e.message)
   }
-
   log('info', 'saving all files')
   const files = await this.saveFiles(newDocuments, fields, {
     contentType: 'application/pdf',
