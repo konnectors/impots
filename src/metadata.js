@@ -1,5 +1,8 @@
-const { log } = require('cozy-konnector-libs')
+const { log, cozyClient } = require('cozy-konnector-libs')
 const moment = require('moment')
+
+const models = cozyClient.new.models
+const { Qualification } = models.document
 
 module.exports = {
   appendMetadata,
@@ -20,7 +23,9 @@ function appendMetadata(docs) {
       subClassification: evalSubClassification(doc.label),
       subjects: [evalSubject(doc.label)],
       datetimeLabel: 'issueDate',
-      originalLabel: doc.label
+      originalLabel: doc.label,
+      carbonCopy: true,
+      qualification: Qualification.getByLabel(evalClassification(doc.label))
     }
 
     const proposedAddress = doc.label.includes(' - ')
