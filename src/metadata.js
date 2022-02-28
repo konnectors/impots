@@ -62,7 +62,6 @@ function evalSubject(label) {
   } else if (label.match(/foncières/)) {
     return 'property'
   } else {
-    // log('debug', label)
     log('warn', 'Impossible to evalute Subject metadata for one doc')
     return undefined
   }
@@ -84,11 +83,16 @@ function evalClassification(label) {
 // Try to evaluate a date from label, then apply preconstruct date to 'Avis' or return false
 function evalDate(label, classification, subjects, year) {
   if (label.match(/\(.*\)$/)) {
-    const date = label.match(/(\d{1,2})\/(\d{2})\/(\d{4})/)
-    const time = label.match(/(\d{1,2}):(\d{2})/)
-    return moment(
-      `${date[3]}-${date[2]}-${date[1]}T${time[1]}:${time[2]}:00`
-    ).toDate()
+    if (label.match(/(\d{1,2})\/(\d{2})\/(\d{4})/)) {
+      const date = label.match(/(\d{1,2})\/(\d{2})\/(\d{4})/)
+      const time = label.match(/(\d{1,2}):(\d{2})/)
+      return moment(
+        `${date[3]}-${date[2]}-${date[1]}T${time[1]}:${time[2]}:00`
+      ).toDate()
+    } else if (label.match(/(\d{4})/)) {
+      const date = label.match(/(\d{4})/)
+      return moment(`${date[0]}`).toDate()
+    }
   } else if (classification === 'tax_notice') {
     if (subjects[0] === 'income') {
       return moment(`${year}-09-01T12:00:00`).toDate()
