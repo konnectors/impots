@@ -457,6 +457,7 @@ async function formatTaxInfos(rawTaxInfos) {
       RFR: RFR,
       '1AJ': firstAJ,
       '1BJ': firstBJ,
+      net_monthly_income: parseFloat((RFR / 12).toFixed(2)),
       currency: 'EUR',
       files: {
         '1AJ': fileFirstJ,
