@@ -1,5 +1,5 @@
 {
-  "version": "1.13.0",
+  "version": "1.15.0",
   "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
@@ -36,6 +36,9 @@
     "bill"
   ],
   "permissions": {
+    "carbon_copy": {
+      "type": "io.cozy.certified.carbon_copy"
+    },
     "bank operations": {
       "type": "io.cozy.bank.operations"
     },
@@ -65,6 +68,9 @@
       "short_description": "Récupère tous les documents relatifs à vos impôts et taxes",
       "long_description": "Votre compte Impots.Gouv est accessible via (www.impots.gouv.fr)[https://www.impots.gouv.fr/portail/]\n\n<br> **Connectez votre compte Impots.Gouv à votre Cozy pour récupérer**\n\n vos avis d'impôt sur le revenu\n vos avis primitifs\n vos accusés de réception de votre déclaration de revenu\n vos avis de Situation Déclarative à l'Impôt sur le Revenu (ASDIR)\n vos avis de taxe d'habitation\n vos formulaires 2041/2042/2044\n votre Échéancier\n\n **Accédez directement à vos documents dans votre Drive personnel**\n\n En connectant votre compte Impots.Gouv, votre Cozy crée automatiquement un dossier dans **Drive > Administratif > Impots.Gouv**. Vos factures sont à portée de main et toujours accessibles !\n\n **Suivez le montant de vos prélèvements avec Banks**\n\n Les prélèvements effectués par Impots.Gouv sont automatiquement liés aux opérations bancaires associées à votre compte si vous utilisez l’application Banks. Finis les maux de tête avec les impôts !\n\n **Sauvegardez vos identifiants avec Pass**\n\n En installant le gestionnaire de mots de passe, vos identifiants sont sauvegardés une bonne fois pour toutes pour vous faciliter la connexion au site (www.impots.gouv.fr)[https://www.impots.gouv.fr/portail/] quand vous devez effectuer vos déclarations. Adieu les mots de passe oubliés !\n\n **Configuration** Pour connecter votre compte, il vous suffit de renseigner dans les champs : votre numéro fiscal\n votre mot de passe\n\n Une fois connecté, votre Cozy se connectera régulièrement à votre compte Impots.Gouv pour récupérer les nouveaux éléments et les historiser dans un dossier Impots.Gouv dans Drive.\n\n Si vous déconnectez votre compte Impots.Gouv, les informations déjà sauvegardées dans votre Cozy restent disponibles. Vous pouvez les supprimer manuellement par ailleurs.",
       "permissions": {
+        "carboncopy": {
+          "description": "Utilisé pour certifier que vos fichiers sont copie conforme avec les documents d'origine"
+        },
         "files": {
           "description": "Utilisé pour sauvegarder les documents fichiers"
         },
@@ -86,6 +92,9 @@
       "short_description": "Fetch all documents related to your taxes",
       "long_description": "Impots.Gouv is a French public tax service.\n\n**Connect your Impots.Gouv account to your Cozy for getting**\n\n- your income tax notices\n- your primitive opinions\n- your acknowledgments of receipt of your income tax return\n- your Income Tax Status Notices\n- your housing tax notices\n- your forms 2041/2042/2044\n- your schedule\n\n**Access directly to your documents in your personal Drive**\n\nBy connecting your Impots.Gouv account, your Cozy automatically creates a folder in **Drive > Administrative > Impots.Gouv**.\n\n**Follow the amount of your bills with Banks**\n\nThe recovered certificates are automatically linked to the Impots.Gouv banking transactions associated with your account if you use the Banks application. \n\n**Save your credentials with Pass**\n\nWith Pass, you will never forget a password again as your credentials are automatically saved in by activating the password manager. Your connexion to the Impots.Gouv website will be simultaneous without any data entry.\n\n**Configuration**\nTo connect your account, you just have to fill in the fields :\n\n- your tax number\n- your password created to access the (www.impots.gouv.fr)[https://www.impots.gouv.fr/portail/] website.\n\nOnce logged in, your Cozy will automatically connect to your Impots.Gouv account to retrieve new items and store them in a Impots.Gouv folder in Drive.\n\nIf you disconnect your Impots.Gouv account, the information already saved in your Cozy remains available. You can delete them manually elsewhere.",
       "permissions": {
+        "carboncopy": {
+          "description": "Use to certify your files are the exact copy of the originals"
+        },
         "files": {
           "description": "Required to save the file documents"
         },
@@ -104,10 +113,16 @@
       }
     }
   },
+  "qualification_labels": [
+    "tax_notice"
+  ],
   "features": [
     "LOGIN_OK",
     "METADATA_DEDUP",
-    "IDENTITY"
+    "IDENTITY",
+    "CARBON_COPY",
+    "DOC_QUALIFICATION_V2",
+    "SENTRY_V2"
   ],
   "banksTransactionRegExp": "(impot|impots|dgfip|d\\.g\\.f\\.i\\.p|ddfip|d\\.d\\.f\\.i\\.p|drfip|d\\.r\\.f\\.i\\.p|tresor public|finances pub|finances publiques|direction generale des finances)",
   "manifest_version": "2"
