@@ -346,13 +346,21 @@ async function fetchTaxInfos(files) {
       year = getYear[0]
     }
     try {
-      const testFiscalRef = resp['2'][0].str
-      if (testFiscalRef === `Impôt sur les revenus de ${parseInt(year - 1)}`) {
+      // Here we check the first page of every files, as it's always the title of the document,
+      // if it's matching what expected it will be given to findTransform()
+      const testFiscalRef = resp['1'][0].str
+      if (
+        testFiscalRef === `Impôt sur les revenus de ${parseInt(year - 1)}` ||
+        testFiscalRef ===
+          `Impôt et prélèvements sociaux sur les revenus de ${parseInt(
+            year - 1
+          )}`
+      ) {
         const transform = await findTransform(resp)
         fiscalRefRevenue = transform
       }
     } catch (err) {
-      log('info', 'No transform property found, continue')
+      log('info', 'No matching found, continue')
     }
     const firstAJ = resp.text.match(/1AJ Salaires - Déclarant 1 : ([0-9]+)/g)
     const firstBJ = resp.text.match(/1BJ Salaires - Déclarant 2 : ([0-9]+)/g)
@@ -395,19 +403,21 @@ async function findTransform(resp) {
   let matchedAmount
   let compareTransform
   // If true, get the last index of the compareTransform array as it is the top-margin of the cell
-  for (let i = 0; i < resp['2'].length; i++) {
-    const string = resp['2'][i].str
-    const findTransform = resp['2'][i].transform
-    if (string === `Revenu fiscal de référence`) {
-      compareTransform = findTransform.pop()
+  for (let j = 1; j < Object.keys(resp).length; j++) {
+    for (let i = 0; i < resp[j].length; i++) {
+      const string = resp[j][i].str
+      const findTransform = resp[j][i].transform
+      if (string === `Revenu fiscal de référence`) {
+        compareTransform = findTransform.pop()
+      }
     }
-  }
-  // If true, the value in the cell matching the top-margin found above is saved
-  for (let i = 0; i < resp['2'].length; i++) {
-    const string = resp['2'][i].str
-    const findTransform = resp['2'][i].transform.pop()
-    if (findTransform === compareTransform) {
-      matchedAmount = parseInt(string, 10)
+    // If true, the value in the cell matching the top-margin found above is saved
+    for (let i = 0; i < resp[j].length; i++) {
+      const string = resp[j][i].str
+      const findTransform = resp[j][i].transform.pop()
+      if (findTransform === compareTransform) {
+        matchedAmount = parseInt(string, 10)
+      }
     }
   }
   // Return the value of the matched
