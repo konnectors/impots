@@ -172,14 +172,18 @@ async function getDocuments() {
   log('debug', `Docs available for years ${years}`)
   for (const year of years) {
     const $year = await request(`${baseUrl}/enp/ensu/documents.do?n=${year}`)
+
     const tmpDocs = Array.from(
       $year('.documents')
-        .find('.document')
+        .find('ul[class="list-unstyled documents"] > li')
         .map((idx, el) => {
-          const label = $year(el)
-            .find('div.hidden-xs.texte > span')
-            .text()
-            .trim()
+          let label = $year(el).find('div.hidden-xs.texte > span').text().trim()
+          if (label.length === 0) {
+            label = $year(el)
+              .find('div[class="visible-xs col-xs-5 texte_docslies"] > span')
+              .text()
+              .trim()
+          }
           // Evaluating the buggy label with double text entry
           const buggyLabel = $year(el).find('div.texte > span').text().trim()
 
