@@ -184,6 +184,10 @@ async function getDocuments() {
               .text()
               .trim()
           }
+          if (label.match(/Décla\s/g)) {
+            log('debug', 'getting in décla matching condition')
+            label = label.replace('Décla', 'Déclaration')
+          }
           // Evaluating the buggy label with double text entry
           const buggyLabel = $year(el).find('div.texte > span').text().trim()
 
@@ -206,7 +210,6 @@ async function getDocuments() {
           buggyFilename = buggyFilename.replace(':', 'h')
           // Remove last : in second time appearance (15:27) as it was remove by saveFiles
           buggyFilename = buggyFilename.replace(':', '')
-
           return {
             year,
             label,

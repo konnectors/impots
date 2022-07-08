@@ -62,18 +62,20 @@ function evalSubject(label) {
   } else if (label.match(/foncières/)) {
     return 'property'
   } else {
-    log('warn', 'Impossible to evalute Subject metadata for one doc')
+    log('warn', 'Impossible to evaluate Subject metadata for one doc')
     return undefined
   }
 }
 
 function evalClassification(label) {
-  if (label.match(/Avis/)) {
+  if (label.match(/Avis (de situation|de taxes?|d'impôt)/)) {
     return 'tax_notice'
   } else if (label.match(/^Déclaration/)) {
     return 'tax_return'
   } else if (label.match(/^Accusé de réception/)) {
-    return 'mail'
+    return 'other_tax_document'
+  } else if (label.match(/^Avis échéancier/)) {
+    return 'tax_timetable'
   } else {
     log('warn', 'Impossible to evalute Classification metadata for one doc')
     return undefined
