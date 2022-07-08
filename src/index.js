@@ -172,14 +172,18 @@ async function getDocuments() {
   log('debug', `Docs available for years ${years}`)
   for (const year of years) {
     const $year = await request(`${baseUrl}/enp/ensu/documents.do?n=${year}`)
+
     const tmpDocs = Array.from(
       $year('.documents')
-        .find('.document')
+        .find('ul[class="list-unstyled documents"] > li')
         .map((idx, el) => {
-          const label = $year(el)
-            .find('div.hidden-xs.texte > span')
-            .text()
-            .trim()
+          let label = $year(el).find('div.hidden-xs.texte > span').text().trim()
+          if (label.length === 0) {
+            label = $year(el)
+              .find('div[class="visible-xs col-xs-5 texte_docslies"] > span')
+              .text()
+              .trim()
+          }
           // Evaluating the buggy label with double text entry
           const buggyLabel = $year(el).find('div.texte > span').text().trim()
 
@@ -226,13 +230,14 @@ async function fetchIdentity(files) {
   await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
-  const result = { contact: {}, tax_informations: {} }
+  const result = { contact: {}, tax_informations: {}, housing: {} }
 
   result.contact.maritalStatus = $('#libelle-sit-fam').text().trim()
   result.contact.numberOfDependants = Number(
     $('.p-nb-pac').text().split(':').pop().trim()
   )
   result.tax_informations = await fetchTaxInfos(files)
+  result.housing = await fetchHousingInfos()
   // Not used for identities, but can be useful later
   // result.contact.tauxImposition = parseFloat(
   //   $('#libelle-tx-foyer')
@@ -346,7 +351,7 @@ async function fetchTaxInfos(files) {
       year = getYear[0]
     }
     try {
-      // Here we check the first page of every files, as it's always the title of the document,
+      // Here we check the first page and first cell of every files, as it's always the title of the document,
       // if it's matching what expected it will be given to findTransform()
       const testFiscalRef = resp['1'][0].str
       if (
@@ -395,6 +400,91 @@ async function fetchTaxInfos(files) {
   const taxInfos = await formatTaxInfos(rawTaxInfos)
 
   return taxInfos
+}
+
+async function fetchHousingInfos() {
+  let housingInfos = []
+  log('debug', 'Getting in fetchHousingInfos')
+  const $ = await request(
+    'https://cfspart.impots.gouv.fr/gmbi-mapi/accueil/flux.ex?_flowId=accueil-flow'
+  )
+  const realEstatePage = $.html()
+  const realEstatePageUnspaced = realEstatePage.replace(/[ ]{2,}/g, '')
+  const foundedType = realEstatePageUnspaced.match(
+    /<span class="type-bien">([a-zA-Z\n ,.]*)<\/span>/g
+  )
+  const foundedCity = realEstatePageUnspaced.match(
+    /<span class="ville">([a-zA-Z &;()0-9]*)<\/span>/g
+  )
+  const foundedAddress = realEstatePageUnspaced.match(
+    /<span class="adresse">([a-zA-Z0-9 \n]*)<\/span>/g
+  )
+  const foundedLivingspaceSize = realEstatePageUnspaced.match(
+    /<span class="bulle">([0-9]* m<sup>)/g
+  )
+  const uniqEntitySize = []
+  // Here we need to loop on the foundedLivingspaceSize array because each entity has
+  // two areas defined: the first = entity size and the second = entity + dependencies (if there is some) size.
+  // As we just need the first for each entity, we implementing the loop by two each round, avoiding the size calculates with dependencies.
+  for (let i = 0; i < foundedLivingspaceSize.length; i += 2) {
+    uniqEntitySize.push(foundedLivingspaceSize[i])
+  }
+  for (let i = 0; i < foundedType.length; i++) {
+    let housing_type = foundedType[i]
+      .replace('<span class="type-bien">\n\n', '')
+      .replace('</span>', '')
+    const housing_type_EN = await housingTypeTraduction(housing_type)
+    const cityAndPostcode = foundedCity[i]
+      .replace('<span class="ville">', '')
+      .replace('</span>', '')
+      .replace('&nbsp; ', '-')
+      .replace(/\(|\)/g, '')
+      .split('-')
+    const cityCap = cityAndPostcode[0]
+    const city = cityCap[0] + cityCap.toLowerCase().substring(1)
+    const street = foundedAddress[i]
+      .replace('<span class="adresse">\n', '')
+      .replace('</span>', '')
+      .toLowerCase()
+    const postcode = cityAndPostcode[1]
+    const living_space_m2 = parseInt(
+      uniqEntitySize[i]
+        .replace('<span class="bulle">', '')
+        .replace(' m<sup>', ''),
+      10
+    )
+
+    housingInfos.push({
+      address: {
+        formattedAddress: `${street}, ${postcode} ${city}`,
+        street,
+        postcode,
+        city
+      },
+      housing_type: housing_type_EN,
+      living_space_m2
+    })
+  }
+  return housingInfos
+}
+
+async function housingTypeTraduction(type) {
+  if (type === 'Appartement') {
+    return 'apartment'
+  }
+  if (type === 'Garage') {
+    return 'garage'
+  }
+  if (type === 'Cave, cellier, buanderie...') {
+    return 'cellar, laundry ...'
+  }
+  if (type === 'Maison') {
+    return 'house'
+  }
+  if (type === 'Parking') {
+    return 'parking'
+  }
+  return type.toLowerCase()
 }
 
 // findTransfrorm will find top-margin of the cell with wanted string and match the value associated
