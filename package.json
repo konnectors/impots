@@ -40,7 +40,7 @@
     "cozy-konnector-libs": "4.54.0",
     "fast-levenshtein": "3.0.0",
     "lodash": "4.17.21",
-    "moment": "2.29.3",
+    "moment": "2.29.4",
     "pdfjs-dist": "2.12.313"
   },
   "devDependencies": {
