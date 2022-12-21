@@ -59,6 +59,10 @@ async function start(fields) {
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity(files)
+    if (ident.housing === null) {
+      log('warn', 'No housing infos available, deleting "housing" property')
+      delete ident.housing
+    }
     await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
@@ -346,7 +350,16 @@ async function fetchTaxInfos(files) {
   const rawTaxInfos = []
   let fiscalRefRevenue
   for (let i = 0; i < files.length; i++) {
-    const fileId = files[i].fileDocument._id
+    let fileId
+    try {
+      fileId = files[i].fileDocument._id
+    } catch (err) {
+      log('info', err)
+      log(
+        'warn',
+        'Impossible to fetch the file, maybe due to disk quota reached'
+      )
+    }
     const resp = await utils.getPdfText(fileId)
     let year = files[i].fileDocument.metadata.year
     if (year === undefined) {
@@ -412,6 +425,9 @@ async function fetchHousingInfos() {
     'https://cfspart.impots.gouv.fr/gmbi-mapi/accueil/flux.ex?_flowId=accueil-flow'
   )
   const realEstatePage = $.html()
+  if (realEstatePage.includes("<strong> Aucun bien n'a été trouvé.</strong>")) {
+    return null
+  }
   const realEstatePageUnspaced = realEstatePage.replace(/[ ]{2,}/g, '')
   const foundedType = realEstatePageUnspaced.match(
     /<span class="type-bien">([a-zA-Z\n ,.]*)<\/span>/g
@@ -521,7 +537,6 @@ async function formatTaxInfos(rawTaxInfos) {
   log('info', 'Starting to format tax information')
   const availableYears = []
   const tax_informations = []
-
   rawTaxInfos.forEach(info => {
     if (info.year) {
       availableYears.push(info.year)
