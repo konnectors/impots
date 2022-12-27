@@ -71,8 +71,10 @@ function evalSubject(label) {
 
 function evalClassification(label) {
   if (
+    // Here for unknown reason, sometimes we find "Avis de dégrèvement" and sometimes "Avis dégrèvement"
+    // We have to cover both possibilities
     label.match(
-      /Avis (de situation|de taxes?|d'impôt|dégrèvement|supplémentaire)/
+      /Avis (de situation|de taxes?|d'impôt|de dégrèvement|dégrèvement|supplémentaire)/
     )
   ) {
     return 'tax_notice'
