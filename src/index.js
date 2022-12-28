@@ -59,6 +59,10 @@ async function start(fields) {
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity(files)
+    if (ident.housing === null) {
+      log('warn', 'No housing infos available, deleting "housing" property')
+      delete ident.housing
+    }
     await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
@@ -345,63 +349,71 @@ async function fetchIdentity(files) {
 async function fetchTaxInfos(files) {
   const rawTaxInfos = []
   let fiscalRefRevenue
-  for (let i = 0; i < files.length; i++) {
-    const fileId = files[i].fileDocument._id
+  let taxNotices = []
+  // We admit that we will refer to the "Avis d'impôt" files to find the real taxInformations
+  // So we're looping on each file to only keep the "Avis d'impôt" from each year.
+  for (const file of files) {
+    if (file.filename.match(/Avis d'impôt/)) {
+      taxNotices.push(file)
+    }
+  }
+  for (let i = 0; i < taxNotices.length; i++) {
+    let fileId
+    try {
+      fileId = taxNotices[i].fileDocument._id
+    } catch (err) {
+      log('error', err)
+      log(
+        'warn',
+        'Impossible to fetch the file, maybe due to disk quota reached'
+      )
+    }
     const resp = await utils.getPdfText(fileId)
-    let year = files[i].fileDocument.metadata.year
+    let year = taxNotices[i].fileDocument.metadata.year
     if (year === undefined) {
-      const getYear = files[i].filename.split('-')
+      const getYear = taxNotices[i].filename.split('-')
       year = getYear[0]
     }
     try {
-      // Here we check the first page and first cell of every files, as it's always the title of the document,
-      // if it's matching what expected it will be given to findTransform()
-      const testFiscalRef = resp['1'][0].str
-      if (
-        testFiscalRef === `Impôt sur les revenus de ${parseInt(year - 1)}` ||
-        testFiscalRef ===
-          `Impôt et prélèvements sociaux sur les revenus de ${parseInt(
-            year - 1
-          )}`
-      ) {
-        const transform = await findTransform(resp)
-        fiscalRefRevenue = transform
-      }
+      const transform = await findTransform(resp)
+      fiscalRefRevenue = transform
     } catch (err) {
       log('info', 'No matching found, continue')
     }
-    const firstAJ = resp.text.match(/1AJ Salaires - Déclarant 1 : ([0-9]+)/g)
-    const firstBJ = resp.text.match(/1BJ Salaires - Déclarant 2 : ([0-9]+)/g)
+    const firstAJ = resp.text.match(/Déclar\. 1\n\n([0-9]*)\n/)[1]
+    let firstBJ = undefined
+    if (resp.text.match(/Déclar\. 2\n\n([0-9]*)\n/)) {
+      firstBJ = resp.text.match(/Déclar\. 2\n\n([0-9]*)\n/)[1]
+    }
 
     if (firstAJ) {
       if (firstAJ && firstBJ) {
         rawTaxInfos.push({
-          filename: files[i].filename,
+          filename: taxNotices[i].filename,
           year: parseInt(year),
           declarers: {
-            firstAJ: firstAJ[0].split(':')[1],
-            firstBJ: firstBJ[0].split(':')[1]
+            firstAJ,
+            firstBJ
           }
         })
       } else {
         log('info', 'no 1BJ line found, saving 1AJ only')
         rawTaxInfos.push({
-          filename: files[i].filename,
+          filename: taxNotices[i].filename,
           year: parseInt(year),
-          declarers: { firstAJ: firstAJ[0].split(':')[1] }
+          declarers: { firstAJ }
         })
       }
     }
     if (fiscalRefRevenue != null) {
       rawTaxInfos.push({
-        filename: files[i].filename,
+        filename: taxNotices[i].filename,
         year: parseInt(year),
         fiscalRefRevenue: fiscalRefRevenue
       })
     }
   }
   const taxInfos = await formatTaxInfos(rawTaxInfos)
-
   return taxInfos
 }
 
@@ -412,6 +424,16 @@ async function fetchHousingInfos() {
     'https://cfspart.impots.gouv.fr/gmbi-mapi/accueil/flux.ex?_flowId=accueil-flow'
   )
   const realEstatePage = $.html()
+  // For the following comparison, we need to remove every whitespaces found as the website uses different encoding.
+  // Otherwise, the line won't match with the expected result even if it looks the same.
+  const haveProperty = $('p[role="heading"] > span > strong')
+    .text()
+    .replace(/\s+/g, '')
+  const compareString = "Aucun bien n'a été trouvé.".replace(/\s+/g, '')
+  if (haveProperty === compareString) {
+    log('info', 'No properties owned, returning null')
+    return null
+  }
   const realEstatePageUnspaced = realEstatePage.replace(/[ ]{2,}/g, '')
   const foundedType = realEstatePageUnspaced.match(
     /<span class="type-bien">([a-zA-Z\n ,.]*)<\/span>/g
@@ -521,7 +543,6 @@ async function formatTaxInfos(rawTaxInfos) {
   log('info', 'Starting to format tax information')
   const availableYears = []
   const tax_informations = []
-
   rawTaxInfos.forEach(info => {
     if (info.year) {
       availableYears.push(info.year)

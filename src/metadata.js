@@ -61,6 +61,8 @@ function evalSubject(label) {
     return 'residence'
   } else if (label.match(/foncières/)) {
     return 'property'
+  } else if (label.match(/audiovisuelle/)) {
+    return 'audiovisual'
   } else {
     log('warn', 'Impossible to evaluate Subject metadata for one doc')
     return undefined
@@ -68,7 +70,13 @@ function evalSubject(label) {
 }
 
 function evalClassification(label) {
-  if (label.match(/Avis (de situation|de taxes?|d'impôt)/)) {
+  if (
+    // Here for unknown reason, sometimes we find "Avis de dégrèvement" and sometimes "Avis dégrèvement"
+    // We have to cover both possibilities
+    label.match(
+      /Avis (de situation|de taxes?|d'impôt|de dégrèvement|dégrèvement|supplémentaire)/
+    )
+  ) {
     return 'tax_notice'
   } else if (label.match(/^Déclaration/)) {
     return 'tax_return'
