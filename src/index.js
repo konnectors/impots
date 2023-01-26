@@ -8,7 +8,8 @@ const {
   log,
   scrape,
   utils,
-  errors
+  errors,
+  cozyClient
 } = require('cozy-konnector-libs')
 
 const request = requestFactory({
@@ -63,6 +64,8 @@ async function start(fields) {
       log('warn', 'No housing infos available, deleting "housing" property')
       delete ident.housing
     }
+    // Due to "Mes papiers" needs, we have to update the metadata to add the "RFR" value found during pdfs parsing.
+    await updateMetadata(files, ident.tax_informations)
     await this.saveIdentity(ident, cleanLogin(fields.login))
   } catch (e) {
     log('warn', 'Error during identity scraping or saving')
@@ -369,7 +372,9 @@ async function fetchTaxInfos(files) {
       )
     }
     const resp = await utils.getPdfText(fileId)
-    let year = taxNotices[i].fileDocument.metadata.year
+    log('info', 'fetchTaxInfo first year')
+    let year = taxNotices[i].fileAttributes.metadata.year
+    log('info', 'fetchTaxInfo after first year')
     if (year === undefined) {
       const getYear = taxNotices[i].filename.split('-')
       year = getYear[0]
@@ -591,4 +596,31 @@ async function formatTaxInfos(rawTaxInfos) {
     })
   }
   return tax_informations
+}
+
+async function updateMetadata(files, taxInfos) {
+  log('info', 'updating metadata')
+  for (const file of files) {
+    if (file.filename.includes("Avis d'impôt")) {
+      const RFRForCurrentYear = findMatchingTaxInfo(
+        file.fileAttributes.metadata.year,
+        taxInfos
+      )
+      const newMetadata = {
+        ...file.fileAttributes.metadata,
+        RFR: RFRForCurrentYear
+      }
+      await cozyClient.new
+        .collection('io.cozy.files')
+        .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+    }
+  }
+}
+
+function findMatchingTaxInfo(searchedYear, taxInfos) {
+  for (const taxInfosForOneYear of taxInfos) {
+    if (taxInfosForOneYear.year === searchedYear) {
+      return taxInfosForOneYear.RFR
+    }
+  }
 }
