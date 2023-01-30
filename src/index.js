@@ -450,7 +450,7 @@ async function fetchHousingInfos() {
     /<span class="adresse">([a-zA-Z0-9 \n]*)<\/span>/g
   )
   const foundedLivingspaceSize = realEstatePageUnspaced.match(
-    /<span class="bulle">([0-9]* m<sup>)/g
+    /<span class="bulle">([0-9]*m<sup>)/g
   )
   const uniqEntitySize = []
   // Here we need to loop on the foundedLivingspaceSize array because each entity has
@@ -461,20 +461,22 @@ async function fetchHousingInfos() {
   }
   for (let i = 0; i < foundedType.length; i++) {
     let housing_type = foundedType[i]
-      .replace('<span class="type-bien">\n\n', '')
+      .replace('<span class="type-bien">', '')
       .replace('</span>', '')
+      .trim()
     const housing_type_EN = await housingTypeTraduction(housing_type)
     const cityAndPostcode = foundedCity[i]
       .replace('<span class="ville">', '')
       .replace('</span>', '')
       .replace('&nbsp; ', '-')
       .replace(/\(|\)/g, '')
-      .split('-')
+      .split(' -')
     const cityCap = cityAndPostcode[0]
     const city = cityCap[0] + cityCap.toLowerCase().substring(1)
     const street = foundedAddress[i]
-      .replace('<span class="adresse">\n', '')
+      .replace('<span class="adresse">', '')
       .replace('</span>', '')
+      .trim()
       .toLowerCase()
     const postcode = cityAndPostcode[1]
     const living_space_m2 = parseInt(
