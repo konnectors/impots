@@ -15,6 +15,8 @@ module.exports = {
 
 function appendMetadata(docs) {
   for (let doc of docs) {
+    const qualif = evalClassification(doc.label)
+
     let metadata = {
       contentAuthor: 'impots.gouv',
       year: doc.year,
@@ -25,7 +27,8 @@ function appendMetadata(docs) {
       datetimeLabel: 'issueDate',
       originalLabel: doc.label,
       carbonCopy: true,
-      qualification: Qualification.getByLabel(evalClassification(doc.label))
+      // Qualification.getByLabel(undefined) throw an error, we need to evaluate this value
+      qualification: qualif ? Qualification.getByLabel(qualif) : undefined
     }
 
     const proposedAddress = doc.label.includes(' - ')
