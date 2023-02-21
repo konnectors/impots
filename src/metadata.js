@@ -78,7 +78,8 @@ function evalClassification(label) {
     // We have to cover both possibilities
     label.match(
       /Avis (de situation|de taxes?|d'impôt|de dégrèvement|dégrèvement|supplémentaire)/
-    )
+    ) ||
+    label.match(/Montant de l’avance/) // Watch out, not the standard apostrophe
   ) {
     return 'tax_notice'
   } else if (label.match(/^Déclaration/)) {
