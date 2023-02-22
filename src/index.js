@@ -423,71 +423,78 @@ async function fetchTaxInfos(files) {
 }
 
 async function fetchHousingInfos() {
-  let housingInfos = []
-  log('debug', 'Getting in fetchHousingInfos')
-  const $ = await request(
-    'https://cfspart.impots.gouv.fr/gmbi-mapi/accueil/flux.ex?_flowId=accueil-flow'
-  )
-  // For the following comparison, we need to remove every whitespaces found as the website uses different encoding.
-  // Otherwise, the line won't match with the expected result even if it looks the same.
-  const haveProperty = $('p[role="heading"] > span > strong')
-    .text()
-    .replace(/\s+/g, '')
-  const compareString = "Aucun bien n'a été trouvé.".replace(/\s+/g, '')
-  if (haveProperty === compareString) {
-    log('info', 'No properties owned, returning null')
-    return null
+  try {
+    let housingInfos = []
+    log('debug', 'Getting in fetchHousingInfos')
+    const $ = await request(
+      'https://cfspart.impots.gouv.fr/gmbi-mapi/accueil/flux.ex?_flowId=accueil-flow'
+    )
+    // For the following comparison, we need to remove every whitespaces found as the website uses different encoding.
+    // Otherwise, the line won't match with the expected result even if it looks the same.
+    const haveProperty = $('p[role="heading"] > span > strong')
+      .text()
+      .replace(/\s+/g, '')
+    const compareString = "Aucun bien n'a été trouvé.".replace(/\s+/g, '')
+    if (haveProperty === compareString) {
+      log('info', 'No properties owned, returning null')
+      return null
+    }
+    const typeElements = Array.from($('span > span[class="type-bien"]'))
+    const foundedType = []
+    for (const element of typeElements) {
+      foundedType.push($(element).text())
+    }
+    const cityElements = Array.from($('span > span[class="ville"]'))
+    const foundedCity = []
+    for (const element of cityElements) {
+      foundedCity.push($(element).text())
+    }
+    const addressElements = Array.from($('span[class="adresse"]'))
+    const foundedAddress = []
+    for (const element of addressElements) {
+      foundedAddress.push($(element).text())
+    }
+    const livingSpaceSizeElements = Array.from(
+      $('span[class="bulles-infos"] > span[class="bulle"]:nth-child(1)')
+    )
+    const foundedLivingspaceSize = []
+    for (const element of livingSpaceSizeElements) {
+      foundedLivingspaceSize.push($(element).text())
+    }
+    const uniqEntitySize = []
+    for (let i = 0; i < foundedLivingspaceSize.length; i++) {
+      uniqEntitySize.push(foundedLivingspaceSize[i])
+    }
+    for (let i = 0; i < foundedType.length; i++) {
+      let housing_type = foundedType[i].trim()
+      const housing_type_EN = await housingTypeTraduction(housing_type)
+      const cityAndPostcode = foundedCity[i]
+        .replace(/\s{1,}/g, '-')
+        .replace(/\(|\)/g, '')
+        .split('-')
+      const cityCap = cityAndPostcode[0]
+      const city = cityCap[0] + cityCap.toLowerCase().substring(1)
+      const street = foundedAddress[i].trim().toLowerCase()
+      const postcode = cityAndPostcode[1]
+      const living_space_m2 = parseInt(uniqEntitySize[i], 10)
+      housingInfos.push({
+        address: {
+          formattedAddress: `${street}, ${postcode} ${city}`,
+          street,
+          postcode,
+          city
+        },
+        housing_type: housing_type_EN,
+        living_space_m2
+      })
+    }
+    return housingInfos
+  } catch (err) {
+    log(
+      'warn',
+      `An error "${err.message}" prevents housing scraping, aborting step`
+    )
   }
-  const typeElements = Array.from($('span > span[class="type-bien"]'))
-  const foundedType = []
-  for (const element of typeElements) {
-    foundedType.push($(element).text())
-  }
-  const cityElements = Array.from($('span > span[class="ville"]'))
-  const foundedCity = []
-  for (const element of cityElements) {
-    foundedCity.push($(element).text())
-  }
-  const addressElements = Array.from($('span[class="adresse"]'))
-  const foundedAddress = []
-  for (const element of addressElements) {
-    foundedAddress.push($(element).text())
-  }
-  const livingSpaceSizeElements = Array.from(
-    $('span[class="bulles-infos"] > span[class="bulle"]:nth-child(1)')
-  )
-  const foundedLivingspaceSize = []
-  for (const element of livingSpaceSizeElements) {
-    foundedLivingspaceSize.push($(element).text())
-  }
-  const uniqEntitySize = []
-  for (let i = 0; i < foundedLivingspaceSize.length; i++) {
-    uniqEntitySize.push(foundedLivingspaceSize[i])
-  }
-  for (let i = 0; i < foundedType.length; i++) {
-    let housing_type = foundedType[i].trim()
-    const housing_type_EN = await housingTypeTraduction(housing_type)
-    const cityAndPostcode = foundedCity[i]
-      .replace(/\s{1,}/g, '-')
-      .replace(/\(|\)/g, '')
-      .split('-')
-    const cityCap = cityAndPostcode[0]
-    const city = cityCap[0] + cityCap.toLowerCase().substring(1)
-    const street = foundedAddress[i].trim().toLowerCase()
-    const postcode = cityAndPostcode[1]
-    const living_space_m2 = parseInt(uniqEntitySize[i], 10)
-    housingInfos.push({
-      address: {
-        formattedAddress: `${street}, ${postcode} ${city}`,
-        street,
-        postcode,
-        city
-      },
-      housing_type: housing_type_EN,
-      living_space_m2
-    })
-  }
-  return housingInfos
 }
 
 async function housingTypeTraduction(type) {
