@@ -428,7 +428,6 @@ async function fetchHousingInfos() {
   const $ = await request(
     'https://cfspart.impots.gouv.fr/gmbi-mapi/accueil/flux.ex?_flowId=accueil-flow'
   )
-  const realEstatePage = $.html()
   // For the following comparison, we need to remove every whitespaces found as the website uses different encoding.
   // Otherwise, the line won't match with the expected result even if it looks the same.
   const haveProperty = $('p[role="heading"] > span > strong')
@@ -439,53 +438,44 @@ async function fetchHousingInfos() {
     log('info', 'No properties owned, returning null')
     return null
   }
-  const realEstatePageUnspaced = realEstatePage.replace(/[ ]{2,}/g, '')
-  const foundedType = realEstatePageUnspaced.match(
-    /<span class="type-bien">([a-zA-Z\n ,.]*)<\/span>/g
+  const typeElements = Array.from($('span > span[class="type-bien"]'))
+  const foundedType = []
+  for (const element of typeElements) {
+    foundedType.push($(element).text())
+  }
+  const cityElements = Array.from($('span > span[class="ville"]'))
+  const foundedCity = []
+  for (const element of cityElements) {
+    foundedCity.push($(element).text())
+  }
+  const addressElements = Array.from($('span[class="adresse"]'))
+  const foundedAddress = []
+  for (const element of addressElements) {
+    foundedAddress.push($(element).text())
+  }
+  const livingSpaceSizeElements = Array.from(
+    $('span[class="bulles-infos"] > span[class="bulle"]:nth-child(1)')
   )
-  const foundedCity = realEstatePageUnspaced.match(
-    /<span class="ville">([a-zA-Z &;()0-9]*)<\/span>/g
-  )
-  const foundedAddress = realEstatePageUnspaced.match(
-    /<span class="adresse">([a-zA-Z0-9 \n]*)<\/span>/g
-  )
-  const foundedLivingspaceSize = realEstatePageUnspaced.match(
-    /<span class="bulle">([0-9]*m<sup>)/g
-  )
+  const foundedLivingspaceSize = []
+  for (const element of livingSpaceSizeElements) {
+    foundedLivingspaceSize.push($(element).text())
+  }
   const uniqEntitySize = []
-  // Here we need to loop on the foundedLivingspaceSize array because each entity has
-  // two areas defined: the first = entity size and the second = entity + dependencies (if there is some) size.
-  // As we just need the first for each entity, we implementing the loop by two each round, avoiding the size calculates with dependencies.
-  for (let i = 0; i < foundedLivingspaceSize.length; i += 2) {
+  for (let i = 0; i < foundedLivingspaceSize.length; i++) {
     uniqEntitySize.push(foundedLivingspaceSize[i])
   }
   for (let i = 0; i < foundedType.length; i++) {
-    let housing_type = foundedType[i]
-      .replace('<span class="type-bien">', '')
-      .replace('</span>', '')
-      .trim()
+    let housing_type = foundedType[i].trim()
     const housing_type_EN = await housingTypeTraduction(housing_type)
     const cityAndPostcode = foundedCity[i]
-      .replace('<span class="ville">', '')
-      .replace('</span>', '')
-      .replace('&nbsp; ', '-')
+      .replace(/\s{1,}/g, '-')
       .replace(/\(|\)/g, '')
-      .split(' -')
+      .split('-')
     const cityCap = cityAndPostcode[0]
     const city = cityCap[0] + cityCap.toLowerCase().substring(1)
-    const street = foundedAddress[i]
-      .replace('<span class="adresse">', '')
-      .replace('</span>', '')
-      .trim()
-      .toLowerCase()
+    const street = foundedAddress[i].trim().toLowerCase()
     const postcode = cityAndPostcode[1]
-    const living_space_m2 = parseInt(
-      uniqEntitySize[i]
-        .replace('<span class="bulle">', '')
-        .replace(' m<sup>', ''),
-      10
-    )
-
+    const living_space_m2 = parseInt(uniqEntitySize[i], 10)
     housingInfos.push({
       address: {
         formattedAddress: `${street}, ${postcode} ${city}`,
