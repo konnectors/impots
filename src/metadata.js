@@ -6,10 +6,8 @@ const { Qualification } = models.document
 
 module.exports = {
   appendMetadata,
-  evalSubject,
   evalClassification,
   evalDate,
-  evalSubClassification,
   formatPhone
 }
 
@@ -21,9 +19,6 @@ function appendMetadata(docs) {
       contentAuthor: 'impots.gouv',
       year: doc.year,
       idEnsua: doc.idEnsua,
-      classification: evalClassification(doc.label),
-      subClassification: evalSubClassification(doc.label),
-      subjects: [evalSubject(doc.label)],
       datetimeLabel: 'issueDate',
       originalLabel: doc.label,
       carbonCopy: true,
@@ -37,39 +32,14 @@ function appendMetadata(docs) {
     if (proposedAddress && !proposedAddress.includes('prélèvements sociaux'))
       metadata.address = proposedAddress
     ;(metadata.datetime =
-      evalDate(
-        doc.label,
-        metadata.classification,
-        metadata.subjects,
-        metadata.year
-      ) || moment(`${doc.year}-01-01T12:00:00`).toDate()),
+      evalDate(doc.label) || moment(`${doc.year}-01-01T12:00:00`).toDate()),
       (metadata.issueDate =
-        evalDate(
-          doc.label,
-          metadata.classification,
-          metadata.subjects,
-          metadata.year
-        ) || moment(`${doc.year}-01-01T12:00:00`).toDate()),
+        evalDate(doc.label) || moment(`${doc.year}-01-01T12:00:00`).toDate()),
       delete doc.year
     delete doc.label
     doc.fileAttributes = { metadata }
   }
   return docs
-}
-
-function evalSubject(label) {
-  if (label.match(/revenus/)) {
-    return 'income'
-  } else if (label.match(/habitation/)) {
-    return 'residence'
-  } else if (label.match(/foncières/)) {
-    return 'property'
-  } else if (label.match(/audiovisuelle/)) {
-    return 'audiovisual'
-  } else {
-    log('warn', 'Impossible to evaluate Subject metadata for one doc')
-    return undefined
-  }
 }
 
 function evalClassification(label) {
@@ -95,7 +65,7 @@ function evalClassification(label) {
 }
 
 // Try to evaluate a date from label, then apply preconstruct date to 'Avis' or return false
-function evalDate(label, classification, subjects, year) {
+function evalDate(label) {
   if (label.match(/\(.*\)$/)) {
     if (label.match(/(\d{1,2})\/(\d{2})\/(\d{4})/)) {
       const date = label.match(/(\d{1,2})\/(\d{2})\/(\d{4})/)
@@ -107,27 +77,8 @@ function evalDate(label, classification, subjects, year) {
       const date = label.match(/(\d{4})/)
       return moment(`${date[0]}`).toDate()
     }
-  } else if (classification === 'tax_notice') {
-    if (subjects[0] === 'income') {
-      return moment(`${year}-09-01T12:00:00`).toDate()
-    } else if (subjects[0] === 'residence') {
-      return moment(`${year}-09-15T12:00:00`).toDate()
-    } else if (subjects[0] === 'property') {
-      return moment(`${year}-10-15T12:00:00`).toDate()
-    }
   } else {
     return false
-  }
-}
-
-function evalSubClassification(label) {
-  if (label.match(/échéancier/)) {
-    return 'payment_schedule'
-  } else if (label.match(/^Avis d'impôt \d{4} sur les revenus/)) {
-    // Probably need to add a main_notice match for 'Fonciere' and 'Habitation'
-    return 'main_notice'
-  } else {
-    return undefined
   }
 }
 
