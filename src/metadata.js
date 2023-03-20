@@ -43,23 +43,36 @@ function appendMetadata(docs) {
 }
 
 function evalClassification(label) {
+  // const wordsArray = label.split(' ')
+  // const firstThreeWords = `${wordsArray[0]} ${wordsArray[1]} ${wordsArray[2]}`
   if (
     // Here for unknown reason, sometimes we find "Avis de dégrèvement" and sometimes "Avis dégrèvement"
     // We have to cover both possibilities
     label.match(
-      /Avis (de situation|de taxes?|d'impôt|de dégrèvement|dégrèvement|supplémentaire)/
+      /Avis (de situation|de taxes?|d'impôt|de dégrèvement|dégrèvement|supplémentaire|impôts sur)/
     ) ||
-    label.match(/Montant de l’avance/) // Watch out, not the standard apostrophe
+    label.match(/Montant de l’avance/) || // Watch out, not the standard apostrophe
+    label.match(/Impots sur les/)
   ) {
     return 'tax_notice'
   } else if (label.match(/^Déclaration/)) {
     return 'tax_return'
-  } else if (label.match(/^Accusé de réception/)) {
+  } else if (
+    label.match(/^Accusé de réception/) ||
+    label.match(/Lettre de relance/) ||
+    label.match(/Notification d'avis/) ||
+    label.match(/Mise en demeure/)
+  ) {
     return 'other_tax_document'
-  } else if (label.match(/^Avis échéancier/)) {
+  } else if (
+    label.match(/^Avis échéancier|Échéancier/) ||
+    label.match(/Prélèvement mensuel/)
+  ) {
     return 'tax_timetable'
   } else {
     log('warn', 'Impossible to evalute Classification metadata for one doc')
+    // Keeping this log for further potentials untreated labels
+    // log('warn', `evalClassification => ${firstThreeWords}`)
     return undefined
   }
 }
