@@ -2,6 +2,11 @@ process.env.SENTRY_DSN =
   process.env.SENTRY_DSN ||
   'https://a43bd181dc0b4a99b4a8085215ca00f1@errors.cozycloud.cc/30'
 
+// This has been added for "Mes papiers" needs
+// It must be removed when everything has been sat up and synchronized
+// When it will be removed, we will only keep 'refTaxIncome' instead of 'RFR'
+const { default: CozyClient } = require('cozy-client')
+
 const {
   BaseKonnector,
   requestFactory,
@@ -11,6 +16,9 @@ const {
   errors,
   cozyClient
 } = require('cozy-konnector-libs')
+
+// |Mes papiers|
+const flag = require('cozy-flags/dist/flag').default
 
 const request = requestFactory({
   debug: false,
@@ -579,20 +587,32 @@ async function formatTaxInfos(rawTaxInfos) {
         }
       }
     }
-
-    tax_informations.push({
+    const foundTaxInfos = {
       year: year,
-      RFR: RFR,
+      // RFR: RFR,
       '1AJ': firstAJ,
       '1BJ': firstBJ,
       net_monthly_income: parseFloat((RFR / 12).toFixed(2)),
       currency: 'EUR',
       files: {
         '1AJ': fileFirstJ,
-        '1BJ': fileFirstJ,
-        RFR: fileRFR
+        '1BJ': fileFirstJ
+        // RFR: fileRFR
       }
-    })
+    }
+    // |Mes papiers|
+    this.client = CozyClient.fromEnv()
+    await this.client.registerPlugin(flag.plugin)
+    await this.client.plugins.flags.initializing
+    if (flag('mespapiers.migrated.metadata')) {
+      foundTaxInfos.refTaxIncome = RFR
+      foundTaxInfos.files.refTaxIncome = fileRFR
+    } else {
+      foundTaxInfos.RFR = RFR
+      foundTaxInfos.files.RFR = fileRFR
+    }
+    // ====
+    tax_informations.push(foundTaxInfos)
   }
   return tax_informations
 }
@@ -606,9 +626,16 @@ async function updateMetadata(files, taxInfos) {
         taxInfos
       )
       const newMetadata = {
-        ...file.fileAttributes.metadata,
-        RFR: RFRForCurrentYear
+        ...file.fileAttributes.metadata
+        // RFR: RFRForCurrentYear
       }
+      // |Mes papiers|
+      if (flag('mespapiers.migrated.metadata')) {
+        newMetadata.refTaxIncome = RFRForCurrentYear
+      } else {
+        newMetadata.RFR = RFRForCurrentYear
+      }
+      // ====
       await cozyClient.new
         .collection('io.cozy.files')
         .updateMetadataAttribute(file.fileDocument._id, newMetadata)
@@ -619,7 +646,11 @@ async function updateMetadata(files, taxInfos) {
 function findMatchingTaxInfo(searchedYear, taxInfos) {
   for (const taxInfosForOneYear of taxInfos) {
     if (taxInfosForOneYear.year === searchedYear) {
+      // |Mes papiers|
       return taxInfosForOneYear.RFR
+        ? taxInfosForOneYear.RFR
+        : taxInfosForOneYear.refTaxIncome
+      // ====
     }
   }
 }
