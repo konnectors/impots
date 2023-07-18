@@ -608,24 +608,36 @@ async function updateMetadata(files, taxInfos) {
   log('info', 'updating metadata')
   for (const file of files) {
     if (file.filename.includes("Avis d'impôt")) {
-      const RFRForCurrentYear = findMatchingTaxInfo(
-        file.fileAttributes.metadata.year,
-        taxInfos
-      )
-      const newMetadata = {
-        ...file.fileAttributes.metadata
-        // RFR: RFRForCurrentYear
-      }
-      // |Mes papiers|
-      if (flag('mespapiers.migrated.metadata')) {
-        newMetadata.refTaxIncome = RFRForCurrentYear
-      } else {
-        newMetadata.RFR = RFRForCurrentYear
-      }
-      // ====
-      await cozyClient.new
+      // First removing all not "avis d'impots"
+      const fileFromCozy = await cozyClient.new
         .collection('io.cozy.files')
-        .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+        .get(file.fileDocument._id)
+      // Only then, removing all file with a RFR already
+      if (
+        !(
+          fileFromCozy.data.metadata.RFR ||
+          fileFromCozy.data.metadata.refTaxIncome
+        )
+      ) {
+        const RFRForCurrentYear = findMatchingTaxInfo(
+          file.fileAttributes.metadata.year,
+          taxInfos
+        )
+        const newMetadata = {
+          ...fileFromCozy.data.metadata
+          // RFR: RFRForCurrentYear
+        }
+        // |Mes papiers|
+        if (flag('mespapiers.migrated.metadata')) {
+          newMetadata.refTaxIncome = RFRForCurrentYear
+        } else {
+          newMetadata.RFR = RFRForCurrentYear
+        }
+        // ====
+        await cozyClient.new
+          .collection('io.cozy.files')
+          .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+      }
     }
   }
 }
