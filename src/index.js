@@ -118,6 +118,10 @@ async function login(fields) {
     log('error', err)
     throw new Error(errors.VENDOR_DOWN)
   }
+  if ($.html().includes("postMessage('ctx,BLOCAGE'")) {
+    log('error', 'Account seems blocked')
+    throw new Error('USER_ACTION_NEEDED')
+  }
   if ($.html().includes("postMessage('ctx,EXISTEPAS")) {
     log('error', 'Fiscal number does not exist')
     throw new Error(errors.LOGIN_FAILED)
