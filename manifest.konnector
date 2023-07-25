@@ -1,5 +1,5 @@
 {
-  "version": "1.20.0",
+  "version": "1.25.0",
   "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
@@ -114,7 +114,10 @@
     }
   },
   "qualification_labels": [
-    "tax_notice"
+    "tax_notice",
+    "real_estate_tax",
+    "tax_return",
+    "tax_timetable"
   ],
   "features": [
     "LOGIN_OK",
