@@ -171,7 +171,7 @@ async function login(fields) {
 async function getDocuments() {
   log('info', 'Getting documents on new interface')
   let docs = []
-  const $ = await request(`${baseUrl}/enp/ensu/documents.do?n=0`)
+  const $ = await request(`${baseUrl}/enp/documents.do?n=0`)
   let years = Array.from(
     $('.date')
       .find('a')
@@ -190,7 +190,7 @@ async function getDocuments() {
 
   log('debug', `Docs available for years ${years}`)
   for (const year of years) {
-    const $year = await request(`${baseUrl}/enp/ensu/documents.do?n=${year}`)
+    const $year = await request(`${baseUrl}/enp/documents.do?n=${year}`)
 
     const tmpDocs = Array.from(
       $year('.documents')
@@ -223,7 +223,7 @@ async function getDocuments() {
             idEnsua,
             filename,
             fileurl:
-              `https://cfspart.impots.gouv.fr/enp/ensu/Affichage_Document_PDF` +
+              `https://cfspart.impots.gouv.fr/enp/Affichage_Document_PDF` +
               `?idEnsua=${idEnsua}`
           }
         })
@@ -236,7 +236,7 @@ async function getDocuments() {
 
 async function fetchIdentity(files) {
   // Prefetch is mandatory if we want maritalStatus
-  await request('https://cfspart.impots.gouv.fr/enp/ensu/redirectpas.do')
+  await request('https://cfspart.impots.gouv.fr/enp/redirectpas.do')
   await sleep(5000) // Need to wait here, if not, maritalStatus is not available
   let $ = await request('https://cfspart.impots.gouv.fr/tremisu/accueil.html')
   const result = { contact: {}, tax_informations: {}, housing: {} }
@@ -256,13 +256,9 @@ async function fetchIdentity(files) {
   //     .trim()
   // )
 
-  $ = await request(
-    'https://cfspart.impots.gouv.fr/enp/ensu/chargementprofil.do'
-  )
+  $ = await request('https://cfspart.impots.gouv.fr/enp/chargementprofil.do')
 
-  $ = await request(
-    'https://cfspart.impots.gouv.fr/enp/ensu/affichageadresse.do'
-  )
+  $ = await request('https://cfspart.impots.gouv.fr/enp/affichageadresse.do')
   const infos = scrape(
     $,
     { key: '.labelInfo', value: '.inputInfo' },
