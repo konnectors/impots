@@ -1,6 +1,6 @@
 {
   "name": "cozy-konnector-impots",
-  "version": "1.26.0",
+  "version": "1.28.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
     "travisDeployKey": "./bin/generate_travis_deploy_key"
   },
   "dependencies": {
-    "cozy-konnector-libs": "5.3.1",
+    "cozy-konnector-libs": "5.4.0",
     "fast-levenshtein": "3.0.0",
     "lodash": "4.17.21",
     "moment": "2.29.4",
