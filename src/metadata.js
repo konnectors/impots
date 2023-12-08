@@ -54,6 +54,9 @@ function evalClassification(label) {
     label.match(/Montant de l’avance/) || // Watch out, not the standard apostrophe
     label.match(/Impots sur les/)
   ) {
+    if (label.match(/foncières?/g)) {
+      return 'real_estate_tax'
+    }
     return 'tax_notice'
   } else if (label.match(/^Déclaration/)) {
     return 'tax_return'
