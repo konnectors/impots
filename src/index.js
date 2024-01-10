@@ -607,6 +607,7 @@ async function formatTaxInfos(rawTaxInfos) {
 async function updateMetadata(files, taxInfos) {
   log('info', 'updating metadata')
   for (const file of files) {
+    // Get the RFR on wanted files
     if (file.filename.includes("Avis d'impôt")) {
       // First removing all not "avis d'impots"
       const fileFromCozy = await cozyClient.new
@@ -639,6 +640,28 @@ async function updateMetadata(files, taxInfos) {
           .updateMetadataAttribute(file.fileDocument._id, newMetadata)
       }
     }
+    // Get the real issueDate of the file
+    if (isArbitraryDate(file.fileAttributes.metadata.issueDate)) {
+      const foundDate = await findRealIssueDate(file)
+      if (foundDate) {
+        log('info', 'Found realIssueDate, updating file')
+        const fileFromCozy = await cozyClient.new
+          .collection('io.cozy.files')
+          .get(file.fileDocument._id)
+
+        const newMetadata = {
+          ...fileFromCozy.data.metadata,
+          issueDate: foundDate,
+          datetime: foundDate,
+          datetimeLabel: 'issueDate'
+        }
+        await cozyClient.new
+          .collection('io.cozy.files')
+          .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+        continue
+      }
+      log('info', 'Nothing to update')
+    }
   }
 }
 
@@ -652,4 +675,93 @@ function findMatchingTaxInfo(searchedYear, taxInfos) {
       // ====
     }
   }
+}
+
+function isArbitraryDate(date) {
+  if (date.getDate() === 1 && date.getMonth() === 0) {
+    log('debug', 'is arbitrary date')
+    return true
+  } else {
+    log('debug', 'is good date')
+    return false
+  }
+}
+
+async function findRealIssueDate(file) {
+  log('debug', 'findRealIssueDate starts')
+  const isValidFile = await checkFileName(file.filename)
+  if (!isValidFile) {
+    log('info', 'File does not contains any date')
+    return null
+  }
+  let fileType = file.fileAttributes.metadata.qualification.label
+  if (file.filename.includes('supplémentaire')) {
+    fileType = 'sup_tax_notice'
+  }
+  const fileId = file.fileDocument._id
+  let realDate
+  const resp = await utils.getPdfText(fileId)
+
+  const foundDates = resp.text.match(
+    /(\d{2}\/\d{2}\/\d{4})\n|(Horodatage : )(\d{2}\/\d{2}\/\d{4})/g
+  )
+  if (foundDates === null) {
+    // Log only the 4 firsts words of the filename for unknown case
+    log(
+      'info',
+      `Cannot find any date for ${file.filename
+        .split(' ')
+        .slice(0, 4)
+        .join(' ')}')`
+    )
+    return null
+  }
+  if (foundDates.length >= 2) {
+    log('info', 'Found multiple dates, sorting ...')
+    realDate = await findIssueDateWithTransform(resp, fileType)
+  } else {
+    realDate = foundDates[0]
+  }
+  if (foundDates[0].match('Horodatage')) {
+    realDate = foundDates[0].split(': ')[1]
+  }
+  const [day, month, year] = realDate.split('/')
+  return new Date(`${year}-${month}-${day}`)
+}
+
+function checkFileName(filename) {
+  // Some files did not have any dates so this is done with known case
+  // of what's inside the different pdfs, list is subject to additions in the future
+  if (filename.match(/Déclaration automatique/)) {
+    log('info', 'No dates available on "Déclaration automatique" files')
+    return null
+  }
+  return true
+}
+
+async function findIssueDateWithTransform(resp, fileType) {
+  log('debug', 'Starting findIssueDateWithTransform')
+  // We did not dispose of every type of files available from impots.gouv
+  // So this is subject to change in the future with other transform values for other document types
+  let matchedDate
+  let compareTransform
+  const taxNoticeIssueDateTransform = [9, 0, 0, 9, 157.96, 533]
+  const supTaxNoticeIssueDateTransform = [9, 0, 0, 9, 184.96, 566]
+
+  if (fileType === 'tax_notice') {
+    compareTransform = taxNoticeIssueDateTransform
+  }
+  if (fileType === 'sup_tax_notice') {
+    compareTransform = supTaxNoticeIssueDateTransform
+  }
+  for (let j = 1; j < Object.keys(resp).length; j++) {
+    for (let i = 0; i < resp[j].length; i++) {
+      const string = resp[j][i].str
+      const findTransform = resp[j][i].transform
+      if (JSON.stringify(findTransform) === JSON.stringify(compareTransform)) {
+        matchedDate = string
+      }
+    }
+  }
+  return matchedDate
 }
