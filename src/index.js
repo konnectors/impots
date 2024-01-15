@@ -64,7 +64,6 @@ async function start(fields) {
     linkBankOperations: false
   })
   */
-
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity(files)
@@ -662,6 +661,25 @@ async function updateMetadata(files, taxInfos) {
       }
       log('info', 'Nothing to update')
     }
+    if (file.filename.includes('taxes foncières')) {
+      const paymentLimitDate = await findPaymentLimitDate(file)
+      if (paymentLimitDate) {
+        log('info', 'Found a paymentLimitDate, updating file')
+        const fileFromCozy = await cozyClient.new
+          .collection('io.cozy.files')
+          .get(file.fileDocument._id)
+
+        const newMetadata = {
+          ...fileFromCozy.data.metadata,
+          paymentLimitDate
+        }
+        await cozyClient.new
+          .collection('io.cozy.files')
+          .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+        continue
+      }
+      log('info', 'Nothing to update')
+    }
   }
 }
 
@@ -694,14 +712,9 @@ async function findRealIssueDate(file) {
     log('info', 'File does not contains any date')
     return null
   }
-  let fileType = file.fileAttributes.metadata.qualification.label
-  if (file.filename.includes('supplémentaire')) {
-    fileType = 'sup_tax_notice'
-  }
   const fileId = file.fileDocument._id
   let realDate
   const resp = await utils.getPdfText(fileId)
-
   const foundDates = resp.text.match(
     /(\d{2}\/\d{2}\/\d{4})\n|(Horodatage : )(\d{2}\/\d{2}\/\d{4})/g
   )
@@ -715,15 +728,11 @@ async function findRealIssueDate(file) {
         .join(' ')}')`
     )
     return null
-  }
-  if (foundDates.length >= 2) {
-    log('info', 'Found multiple dates, sorting ...')
-    realDate = await findIssueDateWithTransform(resp, fileType)
   } else {
-    realDate = foundDates[0]
-  }
-  if (foundDates[0].match('Horodatage')) {
-    realDate = foundDates[0].split(': ')[1]
+    // Until now, every know case shows the issueDate is always the first in the array if we found some
+    foundDates[0].match('Horodatage')
+      ? (realDate = foundDates[0].split(': ')[1])
+      : (realDate = foundDates[0].replace('\n', ''))
   }
   const [day, month, year] = realDate.split('/')
   return new Date(`${year}-${month}-${day}`)
@@ -739,29 +748,24 @@ function checkFileName(filename) {
   return true
 }
 
-async function findIssueDateWithTransform(resp, fileType) {
-  log('debug', 'Starting findIssueDateWithTransform')
-  // We did not dispose of every type of files available from impots.gouv
-  // So this is subject to change in the future with other transform values for other document types
-  let matchedDate
-  let compareTransform
-  const taxNoticeIssueDateTransform = [9, 0, 0, 9, 157.96, 533]
-  const supTaxNoticeIssueDateTransform = [9, 0, 0, 9, 184.96, 566]
+async function findPaymentLimitDate(file) {
+  log('debug', 'findPaymentLimitDate starts')
+  const fileId = file.fileDocument._id
+  let limitPaymentDate
+  const resp = await utils.getPdfText(fileId)
+  const foundDate = resp.text.match(
+    /(Date limite de paiement : )(\d{2}\/\d{2}\/\d{4})|(Au plus tard le\n \n)(\d{2}\/\d{2}\/\d{4})/g
+  )
 
-  if (fileType === 'tax_notice') {
-    compareTransform = taxNoticeIssueDateTransform
+  if (foundDate) {
+    const dateString = foundDate[0]
+    limitPaymentDate = dateString.match('limite de paiement')
+      ? dateString.split(' : ')[1]
+      : dateString.split(' \n')[1]
+    const [day, month, year] = limitPaymentDate.split('/')
+    return new Date(`${year}-${month}-${day}`)
+  } else {
+    log('info', 'No payment limit date found for this file')
+    return null
   }
-  if (fileType === 'sup_tax_notice') {
-    compareTransform = supTaxNoticeIssueDateTransform
-  }
-  for (let j = 1; j < Object.keys(resp).length; j++) {
-    for (let i = 0; i < resp[j].length; i++) {
-      const string = resp[j][i].str
-      const findTransform = resp[j][i].transform
-      if (JSON.stringify(findTransform) === JSON.stringify(compareTransform)) {
-        matchedDate = string
-      }
-    }
-  }
-  return matchedDate
 }
