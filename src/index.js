@@ -64,7 +64,6 @@ async function start(fields) {
     linkBankOperations: false
   })
   */
-
   try {
     log('info', 'Fetching identity ...')
     const ident = await fetchIdentity(files)
@@ -662,6 +661,25 @@ async function updateMetadata(files, taxInfos) {
       }
       log('info', 'Nothing to update')
     }
+    if (file.filename.includes('taxes foncières')) {
+      const paymentLimitDate = await findPaymentLimitDate(file)
+      if (paymentLimitDate) {
+        log('info', 'Found a paymentLimitDate, updating file')
+        const fileFromCozy = await cozyClient.new
+          .collection('io.cozy.files')
+          .get(file.fileDocument._id)
+
+        const newMetadata = {
+          ...fileFromCozy.data.metadata,
+          paymentLimitDate
+        }
+        await cozyClient.new
+          .collection('io.cozy.files')
+          .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+        continue
+      }
+      log('info', 'Nothing to update')
+    }
   }
 }
 
@@ -728,4 +746,26 @@ function checkFileName(filename) {
     return null
   }
   return true
+}
+
+async function findPaymentLimitDate(file) {
+  log('debug', 'findPaymentLimitDate starts')
+  const fileId = file.fileDocument._id
+  let limitPaymentDate
+  const resp = await utils.getPdfText(fileId)
+  const foundDate = resp.text.match(
+    /(Date limite de paiement : )(\d{2}\/\d{2}\/\d{4})|(Au plus tard le\n \n)(\d{2}\/\d{2}\/\d{4})/g
+  )
+
+  if (foundDate) {
+    const dateString = foundDate[0]
+    limitPaymentDate = dateString.match('limite de paiement')
+      ? dateString.split(' : ')[1]
+      : dateString.split(' \n')[1]
+    const [day, month, year] = limitPaymentDate.split('/')
+    return new Date(`${year}-${month}-${day}`)
+  } else {
+    log('info', 'No payment limit date found for this file')
+    return null
+  }
 }
