@@ -3267,7 +3267,38 @@ cozy-konnector-build@1.5.1:
     webpack "5.76.0"
     webpack-cli "4.9.2"
 
-cozy-konnector-libs@5.6.0, cozy-konnector-libs@^5.6.0:
+cozy-konnector-libs@5.6.1:
+  version "5.6.1"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-5.6.1.tgz#fcc89f498716403628b9b609efe2b4223cb77014"
+  integrity sha512-PLzaGr+kolu8nLsdVzhuni+VdOEzYx4qae8DUoM7eml4PmqRzXGtb089kGeSPzERoY2Qr0y0APIz8oIXiQ7O3g==
+  dependencies:
+    babel-runtime "^6.26.0"
+    bluebird "^3.7.2"
+    bluebird-retry "^0.11.0"
+    btoa "1.2.1"
+    cheerio "^1.0.0-rc.9"
+    classificator "^0.3.3"
+    cozy-client "^41.2.0"
+    cozy-client-js "^0.20.0"
+    cozy-device-helper "^2.1.0"
+    cozy-doctypes "^1.83.8"
+    cozy-flags "^2.8.7"
+    cozy-logger "^1.8.0"
+    date-fns "^2.22.1"
+    file-type "^16.5.0"
+    geco "git+https://github.com/konnectors/geco.git#0.11.2"
+    lodash-id "^0.14.0"
+    lowdb "^1.0.0"
+    mime-types "^2.1.31"
+    node-fetch "^2.6.1"
+    raven "^2.6.4"
+    raw-body "^2.4.1"
+    request "^2.88.2"
+    request-debug "^0.2.0"
+    request-promise "^4.2.6"
+    strip-json-comments "^3.1.1"
+
+cozy-konnector-libs@^5.6.0:
   version "5.6.0"
   resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-5.6.0.tgz#ded9157d3abb97c49a8006ca08b03a9018c35e73"
   integrity sha512-+Gqrmj3P1GJomBBGxp1GVNKiImPC83Mt1zfVeu0G88s685e2tiQ3xAIYyd4pfjf0hz0xFtl0SSHrFChaozufEg==
