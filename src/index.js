@@ -309,7 +309,7 @@ async function fetchIdentity(files) {
         'YYYY-MM-DD'
       )
     } else if (info.key === 'Lieu de naissance') {
-      result.contact.birthPlace = info.value
+      result.contact.birthplace = info.value
     } else if (info.key === 'Adresse électronique validée') {
       result.contact.email = [{ address: info.value }]
     } else if (info.key === 'Téléphone portable') {
