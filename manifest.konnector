@@ -27,6 +27,7 @@
       }
     }
   },
+  "frequency": "monthly",
   "time_interval": [
     0,
     24
