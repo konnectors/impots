@@ -1,5 +1,5 @@
 {
-  "version": "1.31.0",
+  "version": "1.32.0",
   "name": "Impots.gouv.fr",
   "type": "konnector",
   "language": "node",
@@ -27,7 +27,6 @@
       }
     }
   },
-  "frequency": "monthly",
   "time_interval": [
     0,
     24
