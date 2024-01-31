@@ -261,8 +261,9 @@ async function fetchIdentity(files) {
   const infos = scrape(
     $,
     { key: '.labelInfo', value: '.inputInfo' },
-    '.infoPersonnelle > ul > li'
+    '.infoPersonnelle > dl > dd'
   )
+
   // extractible datas :
   // {
   //    'Prénom': 'PRENOM',
