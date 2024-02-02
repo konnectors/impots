@@ -681,6 +681,46 @@ async function updateMetadata(files, taxInfos) {
       }
       log('info', 'Nothing to update')
     }
+    if (
+      file.filename.match(
+        /Avis d'impôt|Avis impôts sur|Déclaration|foncières?|Avis échéancier|Échéancier/g
+      )
+    ) {
+      if (file.filename.includes('réductions')) {
+        log('info', 'No taxNumber on this type of documents, jumping it')
+        continue
+      }
+      const fileFromCozy = await cozyClient.new
+        .collection('io.cozy.files')
+        .get(file.fileDocument._id)
+      if (
+        !fileFromCozy.data.metadata.taxNumber ||
+        fileFromCozy.data.metadata.taxNumber.includes(' ')
+      ) {
+        const taxNumber = await findTaxNumber(file)
+        if (taxNumber) {
+          log('info', 'Found realIssueDate, updating file')
+          const fileFromCozy = await cozyClient.new
+            .collection('io.cozy.files')
+            .get(file.fileDocument._id)
+
+          const newMetadata = {
+            ...fileFromCozy.data.metadata,
+            taxNumber
+          }
+          await cozyClient.new
+            .collection('io.cozy.files')
+            .updateMetadataAttribute(file.fileDocument._id, newMetadata)
+          continue
+        } else {
+          log(
+            'info',
+            'Cannot find taxNumber, can be an unknown case, jumping this file'
+          )
+          continue
+        }
+      }
+    }
   }
 }
 
@@ -769,4 +809,25 @@ async function findPaymentLimitDate(file) {
     log('info', 'No payment limit date found for this file')
     return null
   }
+}
+
+async function findTaxNumber(file) {
+  log('debug', 'findtaxNumber starts')
+  const fileId = file.fileDocument._id
+  let taxNumber
+  const resp = await utils.getPdfText(fileId)
+  const foundTaxNumber = resp.text.match(
+    /\d{2} \d{2} \d{3} \d{3} \d{3}\n?|n° fiscal : \d{13}|\n(\d{13} [A-Z]{1})\n/g
+  )
+  if (foundTaxNumber.length > 1) {
+    // Until now, everytime we found more than one number, the first one found is the user's number
+    taxNumber = foundTaxNumber[0].replace(/ /g, '')
+  } else if (foundTaxNumber[0].includes('fiscal')) {
+    taxNumber = foundTaxNumber[0].split(':')[1].trim()
+  } else if (foundTaxNumber[0].includes('\n')) {
+    taxNumber = foundTaxNumber[0].replace(/\n|( [A-Z]\n)|\s/g, '')
+  } else {
+    return null
+  }
+  return taxNumber
 }
