@@ -3178,7 +3178,7 @@ cozy-client-js@^0.20.0:
     pouchdb-browser "7.0.0"
     pouchdb-find "7.0.0"
 
-cozy-client@41.2.0, cozy-client@^41.2.0:
+cozy-client@41.2.0:
   version "41.2.0"
   resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-41.2.0.tgz#a2d72fabe6ba1be4bf5fee39a52a953b9c1dd6c1"
   integrity sha512-e/YYLE06/kpW7s9qGxEmhvILcRRLs3oZhIDyGmsQfJbmsCthfAxCc291qLQwcqdDVzG8gEi/UNfUySJhqbEAYQ==
@@ -3188,6 +3188,31 @@ cozy-client@41.2.0, cozy-client@^41.2.0:
     "@types/lodash" "^4.14.170"
     btoa "^1.2.1"
     cozy-stack-client "^41.2.0"
+    date-fns "2.29.3"
+    json-stable-stringify "^1.0.1"
+    lodash "^4.17.13"
+    microee "^0.0.6"
+    node-fetch "^2.6.1"
+    node-polyglot "2.4.2"
+    open "7.4.2"
+    prop-types "^15.6.2"
+    react-redux "^7.2.0"
+    redux "3 || 4"
+    redux-thunk "^2.3.0"
+    server-destroy "^1.0.1"
+    sift "^6.0.0"
+    url-search-params-polyfill "^8.0.0"
+
+cozy-client@^45.14.1:
+  version "45.14.1"
+  resolved "https://registry.yarnpkg.com/cozy-client/-/cozy-client-45.14.1.tgz#dc0e77e93b48b0a8a302a6f7dc3217d8a6d046c1"
+  integrity sha512-K2Fm1J60XFeRyAhfPywSU9+Kj7FHVcBP+B2K/lwWVOS3dob/iCBlrjgpRNjViErY0kVevgemt3oscZjbnr0mdQ==
+  dependencies:
+    "@cozy/minilog" "1.0.0"
+    "@types/jest" "^26.0.20"
+    "@types/lodash" "^4.14.170"
+    btoa "^1.2.1"
+    cozy-stack-client "^45.13.0"
     date-fns "2.29.3"
     json-stable-stringify "^1.0.1"
     lodash "^4.17.13"
@@ -3228,10 +3253,10 @@ cozy-flags@^2.8.7:
   dependencies:
     microee "^0.0.6"
 
-cozy-jobs-cli@2.3.1:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/cozy-jobs-cli/-/cozy-jobs-cli-2.3.1.tgz#0b61a25d765cccfca9682bf8f09d7db18d13736f"
-  integrity sha512-TwSNeOuM6dk8duT+zcWfm44zuCesnoJxgua/SjY2BaAF5zU0Rzjt5pL34OAY2g4hU3sTjqioK3IFb70n1ZIIjA==
+cozy-jobs-cli@2.3.2:
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/cozy-jobs-cli/-/cozy-jobs-cli-2.3.2.tgz#536d5a16eacb343f494ca50fb87ea7d745c943c9"
+  integrity sha512-CCd9fNdUfsCVUU9DJDsXppPVtdpNH4Yz3m2/KN3+a3JfwRajRZNd9GvgDZWNxZ+kI8gCUa2rmsfE+tXMjcmCqw==
   dependencies:
     "@pollyjs/adapter-node-http" "5.1.1"
     "@pollyjs/core" "5.1.1"
@@ -3245,7 +3270,7 @@ cozy-jobs-cli@2.3.1:
     cozy-client "41.2.0"
     cozy-device-helper "^2.1.0"
     cozy-flags "^2.8.7"
-    cozy-konnector-libs "^5.9.0"
+    cozy-konnector-libs "^5.9.1"
     cozy-logger "1.9.0"
     open "8.4.0"
     pretty "2.0.0"
@@ -3267,10 +3292,10 @@ cozy-konnector-build@1.6.0:
     webpack "5.76.0"
     webpack-cli "4.9.2"
 
-cozy-konnector-libs@5.9.0, cozy-konnector-libs@^5.9.0:
-  version "5.9.0"
-  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-5.9.0.tgz#55700a27fe4d6c46ab8a024b40b36560300dfd2c"
-  integrity sha512-zxsBRr3bND+TOwDtYuZPsgeYQLQMysPPSvmVANsFUcmGLR88OGC1IuHvpfEh49R55Q4IDN1nTxvx00Fc+rWIJw==
+cozy-konnector-libs@5.9.1, cozy-konnector-libs@^5.9.1:
+  version "5.9.1"
+  resolved "https://registry.yarnpkg.com/cozy-konnector-libs/-/cozy-konnector-libs-5.9.1.tgz#ea18cb66979f86240be0f03bc47efce2e61e8a58"
+  integrity sha512-9j0hqf2ktSRETRHQh+hHdp5ElthsFc9XS5HkmfTBV3qRVHb2f5lNvggHP+KM+VmfhmjEMRscku6Y4A0g+eUmPw==
   dependencies:
     babel-runtime "^6.26.0"
     bluebird "^3.7.2"
@@ -3278,7 +3303,7 @@ cozy-konnector-libs@5.9.0, cozy-konnector-libs@^5.9.0:
     btoa "1.2.1"
     cheerio "^1.0.0-rc.9"
     classificator "^0.3.3"
-    cozy-client "^41.2.0"
+    cozy-client "^45.14.1"
     cozy-client-js "^0.20.0"
     cozy-device-helper "^2.1.0"
     cozy-doctypes "^1.83.8"
@@ -3318,6 +3343,15 @@ cozy-stack-client@^41.2.0:
   version "41.2.0"
   resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-41.2.0.tgz#0844c2680a6a5c70dba5caccaa2dbd23a78c3c20"
   integrity sha512-q6y9YUg2Qxd9cK86a2sw1IgdlJSOJa1rMRh0/GSMeGIQ6seKmmheRl/aF/KeHoXkyDV9T7OkE+vF8dmDLU2cAQ==
+  dependencies:
+    detect-node "^2.0.4"
+    mime "^2.4.0"
+    qs "^6.7.0"
+
+cozy-stack-client@^45.13.0:
+  version "45.13.0"
+  resolved "https://registry.yarnpkg.com/cozy-stack-client/-/cozy-stack-client-45.13.0.tgz#394b21a153b752be99ac6c79d073159fd024a4f4"
+  integrity sha512-ruigDMH6XB1Pxa+e3doAMjXihgKSdNZpNPlEcpd7l8MfHazUaHVs/D8Kyop1n+VGM/4va2DU1c1nE7ainT7+jw==
   dependencies:
     detect-node "^2.0.4"
     mime "^2.4.0"
