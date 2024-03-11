@@ -607,6 +607,11 @@ async function formatTaxInfos(rawTaxInfos) {
 async function updateMetadata(files, taxInfos) {
   log('info', 'updating metadata')
   for (const file of files) {
+    // Check if file correctly exist on cozy after download
+    if (!file.fileDocument) {
+      continue
+    }
+
     // Get the RFR on wanted files
     if (file.filename.includes("Avis d'impôt")) {
       // First removing all not "avis d'impots"
