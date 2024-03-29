@@ -699,8 +699,8 @@ async function updateMetadata(files, taxInfos) {
         .collection('io.cozy.files')
         .get(file.fileDocument._id)
       if (
-        !fileFromCozy.data.metadata.taxNumber ||
-        fileFromCozy.data.metadata.taxNumber.includes(' ')
+        !fileFromCozy.data.metadata.number ||
+        fileFromCozy.data.metadata.number.includes(' ')
       ) {
         const taxNumber = await findTaxNumber(file)
         if (taxNumber) {
@@ -711,7 +711,7 @@ async function updateMetadata(files, taxInfos) {
 
           const newMetadata = {
             ...fileFromCozy.data.metadata,
-            taxNumber
+            number: taxNumber
           }
           await cozyClient.new
             .collection('io.cozy.files')
