@@ -21,7 +21,7 @@ const {
 const flag = require('cozy-flags/dist/flag').default
 
 const request = requestFactory({
-  debug: false,
+  // debug: true,
   cheerio: true,
   jar: true,
   json: false
@@ -102,13 +102,14 @@ async function login(fields) {
   let $
 
   // Precheck Fiscal Number, not mandatory, only for login_failed detection
-  await request.get('https://cfspart.impots.gouv.fr/LoginAccess')
+  await request.get(baseUrl)
   try {
     $ = await request({
       method: 'POST',
-      uri: `${baseUrl}/GetContexte?op=c&url=`,
+      uri: `https://cfspart-idp.impots.gouv.fr/GetContexte`,
       form: {
         url: '',
+        lmAuth: '',
         spi: cleanLogin(fields.login)
       }
     })
@@ -137,11 +138,14 @@ async function login(fields) {
   try {
     $ = await request({
       method: 'POST',
-      uri: `${baseUrl}/LoginAEL?op=c&url=`,
+      uri: `https://cfspart-idp.impots.gouv.fr/`,
       form: {
         url: '',
+        lmAuth: 'LDAP',
+        authType: '',
         spi: cleanLogin(fields.login),
-        pwd: fields.password
+        pwd: fields.password,
+        fg: ''
       }
     })
   } catch (err) {
@@ -151,10 +155,13 @@ async function login(fields) {
   }
 
   // Expect a 200 received here. Login success and login failed come here
-  if ($.html().includes("postMessage('ok,https://cfspart.impots.gouv.fr")) {
-    log('info', 'Successfully logged in')
-    const confirmUrl = $.html().match(/postMessage\(.*,(.*),.*\)/)[1]
-    if (confirmUrl) await request(confirmUrl)
+  if ($.html().includes("postMessage('ok,https://cfspart-idp.impots.gouv.fr")) {
+    let confirmUrl = $.html().match(/postMessage\(.*,(.*)',.*\)/)[1]
+    if (confirmUrl) {
+      confirmUrl = confirmUrl.replace(/\+/g, ' ')
+      await request(confirmUrl)
+      log('info', 'Successfully logged in')
+    }
   } else if ($.html().includes("postMessage('lmdp,4665'")) {
     log('error', 'detected a maintenance, lmdp,4665')
     throw new Error(errors.VENDOR_DOWN + '.MAINTENANCE')
@@ -162,7 +169,8 @@ async function login(fields) {
     log('error', 'Password seems wrong')
     throw new Error(errors.LOGIN_FAILED)
   } else {
-    throw new Error('UNKOWN_LOGIN_STATUS')
+    log('error', 'Final login request return unknown status')
+    throw new Error(errors.UNKNOWN_ERROR)
   }
   await this.notifySuccessfulLogin()
 }
