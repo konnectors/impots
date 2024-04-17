@@ -202,7 +202,7 @@ async function getDocuments() {
     let baseLength = 1
     let tmpDocs
     let loop = 1
-    // Let 3 laps maximum and go with what has been found
+    // Let 3 loops maximum and go with what has been found
     while (baseLength !== testLength && loop < 3) {
       log('debug', `${loop} loop`)
       const $year = await request(`${baseUrl}/enp/documents.do?n=${year}`)
@@ -245,22 +245,20 @@ async function getDocuments() {
             }
           })
       )
-      if (!baseLength) {
-        log('debug', 'First baseLength definition')
-        baseLength = tmpDocs.length
-      } else {
-        log('debug', 'testLength definition')
+      if (!testLength) {
+        log('debug', 'first testLength definition')
         testLength = tmpDocs.length
       }
       if (testLength > baseLength) {
         log('debug', 'testLength is greater, becoming baseLength')
         baseLength = testLength
+        testLength = 0
       }
       loop++
       // Need to wait here, if not, all documents may not be available + it avoid spamming requests
       await sleep(1000)
     }
-    log('info', `🦜️🦜️🦜️ - ${tmpDocs.length} docs found for year ${year}`)
+    log('info', `${tmpDocs.length} docs found for year ${year}`)
     docs = docs.concat(tmpDocs)
   }
   return docs
@@ -696,7 +694,6 @@ async function updateMetadata(files, taxInfos) {
         await cozyClient.new
           .collection('io.cozy.files')
           .updateMetadataAttribute(file.fileDocument._id, newMetadata)
-        continue
       }
       log('info', 'Nothing to update')
     }
@@ -733,23 +730,26 @@ async function updateMetadata(files, taxInfos) {
         .get(file.fileDocument._id)
       if (
         !fileFromCozy.data.metadata.number ||
-        fileFromCozy.data.metadata.number.includes(' ')
+        fileFromCozy.data.metadata.number.includes(' ') ||
+        fileFromCozy.data.metadata.number.includes('\n')
       ) {
         const taxNumber = await findTaxNumber(file)
         if (taxNumber) {
-          log('info', 'Found realIssueDate, updating file')
+          log('info', 'Found taxNumber, updating file')
           const fileFromCozy = await cozyClient.new
             .collection('io.cozy.files')
             .get(file.fileDocument._id)
 
           const newMetadata = {
             ...fileFromCozy.data.metadata,
-            number: taxNumber
+            number: taxNumber.trim()
+          }
+          if (newMetadata.taxNumber) {
+            delete newMetadata.taxNumber
           }
           await cozyClient.new
             .collection('io.cozy.files')
             .updateMetadataAttribute(file.fileDocument._id, newMetadata)
-          continue
         } else {
           log(
             'info',
