@@ -197,44 +197,67 @@ async function getDocuments() {
 
   log('debug', `Docs available for years ${years}`)
   for (const year of years) {
-    const $year = await request(`${baseUrl}/enp/documents.do?n=${year}`)
-
-    const tmpDocs = Array.from(
-      $year('.documents')
-        .find('ul[class="list-unstyled documents"] > li')
-        .map((idx, el) => {
-          let label = $year(el).find('div.hidden-xs.texte > span').text().trim()
-          if (label.length === 0) {
-            label = $year(el)
-              .find('div[class="visible-xs col-xs-5 texte_docslies"] > span')
+    // Needs to be different in first place to enter the loop
+    let testLength = 0
+    let baseLength = 1
+    let tmpDocs
+    let loop = 1
+    // Let 3 loops maximum and go with what has been found
+    while (baseLength !== testLength && loop < 3) {
+      log('debug', `${loop} loop`)
+      const $year = await request(`${baseUrl}/enp/documents.do?n=${year}`)
+      tmpDocs = Array.from(
+        $year('.documents')
+          .find('ul[class="list-unstyled documents"] > li')
+          .map((idx, el) => {
+            let label = $year(el)
+              .find('div.hidden-xs.texte > span')
               .text()
               .trim()
-          }
-          if (label.match(/Décla\s/g)) {
-            log('debug', 'getting in décla matching condition')
-            label = label.replace('Décla', 'Déclaration')
-          }
-          const idEnsua = $year(el).find('input').attr('value')
-          let filename = `${year}-${label}.pdf`
-          // Replace / and : found in some labels
-          // 1) in date (01/01/2018 -> 01-01-2018)
-          filename = filename.replace(/\//g, '-')
-          // 2) in complementrary form
-          filename = filename.replace(' : ', ' - ') // eslint-disable-line
-          filename = filename.replace(' : ', ' - ')
-          // 3) replace time (19:26 -> 19h26)
-          filename = filename.replace(':', 'h')
-          return {
-            year,
-            label,
-            idEnsua,
-            filename,
-            fileurl:
-              `https://cfspart.impots.gouv.fr/enp/Affichage_Document_PDF` +
-              `?idEnsua=${idEnsua}`
-          }
-        })
-    )
+            if (label.length === 0) {
+              label = $year(el)
+                .find('div[class="visible-xs col-xs-5 texte_docslies"] > span')
+                .text()
+                .trim()
+            }
+            if (label.match(/Décla\s/g)) {
+              log('debug', 'getting in décla matching condition')
+              label = label.replace('Décla', 'Déclaration')
+            }
+            const idEnsua = $year(el).find('input').attr('value')
+            let filename = `${year}-${label}.pdf`
+            // Replace / and : found in some labels
+            // 1) in date (01/01/2018 -> 01-01-2018)
+            filename = filename.replace(/\//g, '-')
+            // 2) in complementrary form
+            filename = filename.replace(' : ', ' - ') // eslint-disable-line
+            filename = filename.replace(' : ', ' - ')
+            // 3) replace time (19:26 -> 19h26)
+            filename = filename.replace(':', 'h')
+            return {
+              year,
+              label,
+              idEnsua,
+              filename,
+              fileurl:
+                `https://cfspart.impots.gouv.fr/enp/Affichage_Document_PDF` +
+                `?idEnsua=${idEnsua}`
+            }
+          })
+      )
+      if (!testLength) {
+        log('debug', 'first testLength definition')
+        testLength = tmpDocs.length
+      }
+      if (testLength > baseLength) {
+        log('debug', 'testLength is greater, becoming baseLength')
+        baseLength = testLength
+        testLength = 0
+      }
+      loop++
+      // Need to wait here, if not, all documents may not be available + it avoid spamming requests
+      await sleep(1000)
+    }
     log('info', `${tmpDocs.length} docs found for year ${year}`)
     docs = docs.concat(tmpDocs)
   }
@@ -671,7 +694,6 @@ async function updateMetadata(files, taxInfos) {
         await cozyClient.new
           .collection('io.cozy.files')
           .updateMetadataAttribute(file.fileDocument._id, newMetadata)
-        continue
       }
       log('info', 'Nothing to update')
     }
@@ -708,23 +730,26 @@ async function updateMetadata(files, taxInfos) {
         .get(file.fileDocument._id)
       if (
         !fileFromCozy.data.metadata.number ||
-        fileFromCozy.data.metadata.number.includes(' ')
+        fileFromCozy.data.metadata.number.includes(' ') ||
+        fileFromCozy.data.metadata.number.includes('\n')
       ) {
         const taxNumber = await findTaxNumber(file)
         if (taxNumber) {
-          log('info', 'Found realIssueDate, updating file')
+          log('info', 'Found taxNumber, updating file')
           const fileFromCozy = await cozyClient.new
             .collection('io.cozy.files')
             .get(file.fileDocument._id)
 
           const newMetadata = {
             ...fileFromCozy.data.metadata,
-            number: taxNumber
+            number: taxNumber.trim()
+          }
+          if (newMetadata.taxNumber) {
+            delete newMetadata.taxNumber
           }
           await cozyClient.new
             .collection('io.cozy.files')
             .updateMetadataAttribute(file.fileDocument._id, newMetadata)
-          continue
         } else {
           log(
             'info',
