@@ -40,7 +40,7 @@
     "fast-levenshtein": "3.0.0",
     "lodash": "4.17.21",
     "moment": "2.29.4",
-    "pdfjs-dist": "2.12.313"
+    "pdfjs-dist": "4.2.67"
   },
   "devDependencies": {
     "cozy-jobs-cli": "2.4.1",
