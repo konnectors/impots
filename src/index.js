@@ -177,91 +177,100 @@ async function login(fields) {
 
 async function getDocuments() {
   log('info', 'Getting documents on new interface')
-  let docs = []
-  const $ = await request(`${baseUrl}/enp/documents.do?n=0`)
-  let years = Array.from(
-    $('.date')
-      .find('a')
-      .map((idx, el) => {
-        const year = el.children
-          .filter(tag => tag.type === 'text')
-          .map(t => t.data)
-          .join('')
-          .trim()
-        if (year.match(/^\d{4}$/) === null) {
-          throw 'Docs year scraping failed'
-        }
-        return Number(year)
-      })
-  )
+  try {
+    let docs = []
+    const $ = await request(`${baseUrl}/enp/documents.do?n=0`)
+    let years = Array.from(
+      $('.date')
+        .find('a')
+        .map((idx, el) => {
+          const year = el.children
+            .filter(tag => tag.type === 'text')
+            .map(t => t.data)
+            .join('')
+            .trim()
+          if (year.match(/^\d{4}$/) === null) {
+            throw 'Docs year scraping failed'
+          }
+          return Number(year)
+        })
+    )
 
-  log('debug', `Docs available for years ${years}`)
-  for (const year of years) {
-    // Needs to be different in first place to enter the loop
-    let testLength = 0
-    let baseLength = 1
-    let tmpDocs
-    let loop = 1
-    // Let 3 loops maximum and go with what has been found
-    while (baseLength !== testLength && loop < 3) {
-      log('debug', `${loop} loop`)
-      const $year = await request(`${baseUrl}/enp/documents.do?n=${year}`)
-      tmpDocs = Array.from(
-        $year('.documents')
-          .find('ul[class="list-unstyled documents"] > li')
-          .map((idx, el) => {
-            let label = $year(el)
-              .find('div.hidden-xs.texte > span')
-              .text()
-              .trim()
-            if (label.length === 0) {
-              label = $year(el)
-                .find('div[class="visible-xs col-xs-5 texte_docslies"] > span')
+    log('debug', `Docs available for years ${years}`)
+    for (const year of years) {
+      // Needs to be different in first place to enter the loop
+      let testLength = 0
+      let baseLength = 1
+      let tmpDocs
+      let loop = 1
+      // Let 3 loops maximum and go with what has been found
+      while (baseLength !== testLength && loop < 3) {
+        log('debug', `${loop} loop`)
+        const $year = await request(`${baseUrl}/enp/documents.do?n=${year}`)
+        tmpDocs = Array.from(
+          $year('.documents')
+            .find('ul[class="list-unstyled documents"] > li')
+            .map((idx, el) => {
+              let label = $year(el)
+                .find('div.hidden-xs.texte > span')
                 .text()
                 .trim()
-            }
-            if (label.match(/Décla\s/g)) {
-              log('debug', 'getting in décla matching condition')
-              label = label.replace('Décla', 'Déclaration')
-            }
-            const idEnsua = $year(el).find('input').attr('value')
-            let filename = `${year}-${label}.pdf`
-            // Replace / and : found in some labels
-            // 1) in date (01/01/2018 -> 01-01-2018)
-            filename = filename.replace(/\//g, '-')
-            // 2) in complementrary form
+              if (label.length === 0) {
+                label = $year(el)
+                  .find(
+                    'div[class="visible-xs col-xs-5 texte_docslies"] > span'
+                  )
+                  .text()
+                  .trim()
+              }
+              if (label.match(/Décla\s/g)) {
+                log('debug', 'getting in décla matching condition')
+                label = label.replace('Décla', 'Déclaration')
+              }
+              const idEnsua = $year(el).find('input').attr('value')
+              let filename = `${year}-${label}.pdf`
+              // Replace / and : found in some labels
+              // 1) in date (01/01/2018 -> 01-01-2018)
+              filename = filename.replace(/\//g, '-')
+              // 2) in complementrary form
             filename = filename.replace(' : ', ' - ') // eslint-disable-line
-            filename = filename.replace(' : ', ' - ')
-            // 3) replace time (19:26 -> 19h26)
-            filename = filename.replace(':', 'h')
-            return {
-              year,
-              label,
-              idEnsua,
-              filename,
-              fileurl:
-                `https://cfspart.impots.gouv.fr/enp/Affichage_Document_PDF` +
-                `?idEnsua=${idEnsua}`
-            }
-          })
-      )
-      if (!testLength) {
-        log('debug', 'first testLength definition')
-        testLength = tmpDocs.length
+              filename = filename.replace(' : ', ' - ')
+              // 3) replace time (19:26 -> 19h26)
+              filename = filename.replace(':', 'h')
+              return {
+                year,
+                label,
+                idEnsua,
+                filename,
+                fileurl:
+                  `https://cfspart.impots.gouv.fr/enp/Affichage_Document_PDF` +
+                  `?idEnsua=${idEnsua}`
+              }
+            })
+        )
+        if (!testLength) {
+          log('debug', 'first testLength definition')
+          testLength = tmpDocs.length
+        }
+        if (testLength > baseLength) {
+          log('debug', 'testLength is greater, becoming baseLength')
+          baseLength = testLength
+          testLength = 0
+        }
+        loop++
+        // Need to wait here, if not, all documents may not be available + it avoid spamming requests
+        await sleep(1000)
       }
-      if (testLength > baseLength) {
-        log('debug', 'testLength is greater, becoming baseLength')
-        baseLength = testLength
-        testLength = 0
-      }
-      loop++
-      // Need to wait here, if not, all documents may not be available + it avoid spamming requests
-      await sleep(1000)
+      log('info', `${tmpDocs.length} docs found for year ${year}`)
+      docs = docs.concat(tmpDocs)
     }
-    log('info', `${tmpDocs.length} docs found for year ${year}`)
-    docs = docs.concat(tmpDocs)
+    return docs
+  } catch (err) {
+    if (err.statusCode === 503) {
+      log('error', err.message)
+      throw new Error('VENDOR_DOWN')
+    }
   }
-  return docs
 }
 
 async function fetchIdentity(files) {
